@@ -680,8 +680,13 @@ app.get("/api/knowledge-files/:name", requireAdmin, (req, res) => {
     return res.status(404).json({ error: "Knowledge document not found." });
   }
   try {
+    const ext = path.extname(fileName).toLowerCase();
+    const isBinary = [".pdf", ".docx", ".pptx", ".xlsx"].includes(ext);
+    if (isBinary) {
+      return res.json({ name: fileName, content: "", isBinary: true });
+    }
     const rawContent = fs.readFileSync(filePath, "utf-8");
-    return res.json({ name: fileName, content: rawContent });
+    return res.json({ name: fileName, content: rawContent, isBinary: false });
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to read knowledge file: " + err.message });
   }
@@ -689,7 +694,7 @@ app.get("/api/knowledge-files/:name", requireAdmin, (req, res) => {
 
 // Create or overwrite a knowledge base file
 app.post("/api/knowledge-files", requireAdmin, (req, res) => {
-  const { name, content } = req.body;
+  const { name, content, encoding } = req.body;
   if (!name || content === undefined) {
     return res.status(400).json({ error: "Missing file name or content body parameter." });
   }
@@ -700,7 +705,11 @@ app.post("/api/knowledge-files", requireAdmin, (req, res) => {
   }
   try {
     const filePath = path.join(KNOWLEDGE_DIR, cleanName);
-    fs.writeFileSync(filePath, content, "utf-8");
+    if (encoding === "base64") {
+      fs.writeFileSync(filePath, Buffer.from(content, "base64"));
+    } else {
+      fs.writeFileSync(filePath, content, "utf-8");
+    }
     return res.json({ success: true, name: cleanName, message: "File synchronised successfully under digital twin folder." });
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to save knowledge document: " + err.message });
@@ -747,6 +756,32 @@ Guidelines for your responses:
 - If they ask how to contact Budi, provide his LinkedIn link, Github link, or suggest that they type in the elegant Contact Form on the page.
 `;
 
+function getFileMimeType(fileName: string): string {
+  const ext = path.extname(fileName).toLowerCase();
+  switch (ext) {
+    case ".pdf":
+      return "application/pdf";
+    case ".docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case ".pptx":
+      return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    case ".xlsx":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    case ".txt":
+      return "text/plain";
+    case ".csv":
+      return "text/csv";
+    case ".json":
+      return "application/json";
+    case ".faq":
+      return "text/plain";
+    case ".md":
+      return "text/markdown";
+    default:
+      return "application/octet-stream";
+  }
+}
+
 app.post("/api/chat", async (req, res) => {
   const { message, history } = req.body;
 
@@ -758,11 +793,13 @@ app.post("/api/chat", async (req, res) => {
     // RAG METHODOLOGY: Precursor scanning and search
     // Automatically read and compile all files in the './digital_twin_knowledge' folder to inject context
     let knowledgeBaseContext = "";
+    const inlineParts: any[] = [];
+
     if (fs.existsSync(KNOWLEDGE_DIR)) {
       try {
         const files = fs.readdirSync(KNOWLEDGE_DIR);
         // Load text and markdown files as context resources
-        const permissibleFiles = files.filter(f => 
+        const textFiles = files.filter(f => 
           f.endsWith(".txt") || 
           f.endsWith(".md") || 
           f.endsWith(".json") || 
@@ -771,7 +808,7 @@ app.post("/api/chat", async (req, res) => {
         );
         
         const sourceBlocks: string[] = [];
-        for (const file of permissibleFiles) {
+        for (const file of textFiles) {
           const filePath = path.join(KNOWLEDGE_DIR, file);
           const rawContent = fs.readFileSync(filePath, "utf-8");
           sourceBlocks.push(`SOURCE FILE: ${file}\n=== CONTENT START ===\n${rawContent}\n=== CONTENT END ===`);
@@ -779,20 +816,46 @@ app.post("/api/chat", async (req, res) => {
 
         if (sourceBlocks.length > 0) {
           knowledgeBaseContext = `
-[DIGITAL TWIN RAG KNOWLEDGE BASE]
+[DIGITAL TWIN RAG KNOWLEDGE BASE - TEXT SOURCES]
 You are equipped with a personal database of files uploaded by Budi himself. 
-Search this corpus carefully to answering queries. ALWAYS prioritize the facts and answers inside these source files.
+Search this corpus carefully to answer queries. ALWAYS prioritize the facts and answers inside these source files.
 If information is retrieved from here, construct a friendly reply referencing these uploaded sources where appropriate.
 
 ${sourceBlocks.join("\n\n")}
 `;
+        }
+
+        // Load binary documents (.pdf, .docx, .pptx, .xlsx) as multimodal inline parts for Gemini
+        const binaryFiles = files.filter(f => 
+          f.endsWith(".pdf") || 
+          f.endsWith(".docx") || 
+          f.endsWith(".pptx") || 
+          f.endsWith(".xlsx")
+        );
+
+        for (const file of binaryFiles) {
+          try {
+            const filePath = path.join(KNOWLEDGE_DIR, file);
+            if (fs.existsSync(filePath)) {
+              const fileBuffer = fs.readFileSync(filePath);
+              const mimeType = getFileMimeType(file);
+              inlineParts.push({
+                inlineData: {
+                  data: fileBuffer.toString("base64"),
+                  mimeType: mimeType
+                }
+              });
+            }
+          } catch (binaryErr) {
+            console.error(`Error loading file: ${file} for inline RAG:`, binaryErr);
+          }
         }
       } catch (err) {
         console.error("Error reading knowledge folder for RAG:", err);
       }
     }
 
-    // Blend base instructions with dyn RAG context
+    // Blend base instructions with dynamic RAG context
     const finalSystemInstruction = `${BASE_SYSTEM_INSTRUCTION}
 ${knowledgeBaseContext}
 
@@ -800,6 +863,7 @@ Instructions on RAG Matching:
 - Prioritize facts in the [DIGITAL TWIN RAG KNOWLEDGE BASE] over general info.
 - If the user asks general questions about Budi that are solved in files, reference the facts accurately.
 - Keep output extremely clear, helpful, professional, and compact (1-3 lines).
+- Note: You can natively read and parse through any attached PDF/Office document contents passed as inlineParts in the user's turn. Use them to provide precise answers about Budi's background.
 `;
 
     // Format incoming chat log into standard SDK conversational array
@@ -808,11 +872,17 @@ Instructions on RAG Matching:
       parts: [{ text: h.parts?.[0]?.text || "" }]
     }));
 
+    // Package final user message with any available binary inlineData parts (multimodal in-context learning)
+    const activeUserParts = [
+      ...inlineParts,
+      { text: message }
+    ];
+
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: [
         ...conversationHistory,
-        { role: "user", parts: [{ text: message }] }
+        { role: "user", parts: activeUserParts }
       ],
       config: {
         systemInstruction: finalSystemInstruction,

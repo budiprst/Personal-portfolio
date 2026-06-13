@@ -21,7 +21,8 @@ import {
   PlusCircle,
   Clock,
   ArrowRight,
-  Code
+  Code,
+  LogOut
 } from "lucide-react";
 
 interface KnowledgeFile {
@@ -46,7 +47,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
 
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
-  const [selectedFile, setSelectedFile] = useState<{ name: string; content: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{ name: string; content: string; isBinary?: boolean } | null>(null);
   const [fetchingFile, setFetchingFile] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -164,6 +165,14 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
     }
   };
 
+  const handleLogout = () => {
+    sessionStorage.removeItem("budi_admin_token");
+    setAdminToken("");
+    setIsAdminLoggedIn(false);
+    setSelectedFile(null);
+    showStatus("success", "Administrational session closed successfully.");
+  };
+
   const fetchFiles = async () => {
     setLoadingFiles(true);
     try {
@@ -225,7 +234,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
     }
   };
 
-  const handleSaveFile = async (nameToSave: string, contentToSave: string, isSilent: boolean = false) => {
+  const handleSaveFile = async (nameToSave: string, contentToSave: string, isSilent: boolean = false, encoding: string = "utf-8") => {
     if (!nameToSave.trim() || contentToSave === undefined) {
       showStatus("error", "Please provide a valid file name and document content.");
       return;
@@ -238,7 +247,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
     try {
       const res = await fetchWithAuth("/api/knowledge-files", {
         method: "POST",
-        body: JSON.stringify({ name: cleanName, content: contentToSave })
+        body: JSON.stringify({ name: cleanName, content: contentToSave, encoding })
       });
 
       if (res.ok) {
@@ -250,7 +259,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
         fetchFiles();
         // Clear selected view if editing same file
         if (selectedFile?.name === cleanName) {
-          setSelectedFile({ name: cleanName, content: contentToSave });
+          setSelectedFile({ name: cleanName, content: contentToSave, isBinary: encoding === "base64" });
         }
       } else {
         const err = await res.json();
@@ -315,23 +324,42 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
   };
 
   const handleParseUpload = (file: File) => {
-    const permissibleExtensions = [".txt", ".md", ".json", ".csv", ".faq"];
+    const textExtensions = [".txt", ".md", ".json", ".csv", ".faq"];
+    const binaryExtensions = [".pdf", ".docx", ".pptx", ".xlsx"];
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     
-    if (!permissibleExtensions.includes(ext)) {
-      showStatus("error", "Unsupported format. Please upload text, markdown, json, csv, or faq files.");
+    if (!textExtensions.includes(ext) && !binaryExtensions.includes(ext)) {
+      showStatus("error", "Unsupported format. Please upload PDF, Word (.docx), Slides (.pptx), Sheets (.xlsx), or UTF-8 Text files.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      handleSaveFile(file.name, content);
-    };
-    reader.onerror = () => {
-      showStatus("error", "Failed to deserialize uploaded file contents.");
-    };
-    reader.readAsText(file);
+    if (binaryExtensions.includes(ext)) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        const base64Index = dataUrl.indexOf(";base64,");
+        if (base64Index !== -1) {
+          const base64 = dataUrl.substring(base64Index + 8);
+          handleSaveFile(file.name, base64, false, "base64");
+        } else {
+          showStatus("error", "Failed to compile document to Base64 binary.");
+        }
+      };
+      reader.onerror = () => {
+        showStatus("error", "Failed to read binary file contents.");
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        handleSaveFile(file.name, content, false, "utf-8");
+      };
+      reader.onerror = () => {
+        showStatus("error", "Failed to deserialize uploaded file contents.");
+      };
+      reader.readAsText(file);
+    }
   };
 
   // Chat sandbox query handles
@@ -551,13 +579,23 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
               </p>
             </div>
           </div>
-          <button 
-            id="close-admin-btn"
-            onClick={onClose}
-            className="text-[#a0aab4] hover:text-white transition-all p-2 font-mono text-xs border border-[#2d3139] rounded-lg hover:bg-[#1f232b] flex items-center gap-1.5"
-          >
-            Esc ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              id="admin-logout-btn"
+              onClick={handleLogout}
+              className="text-red-400 hover:text-red-350 hover:bg-red-500/10 transition-all p-2 font-mono text-xs border border-red-500/20 rounded-lg flex items-center gap-1.5 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Log Out
+            </button>
+            <button 
+              id="close-admin-btn"
+              onClick={onClose}
+              className="text-[#a0aab4] hover:text-white transition-all p-2 font-mono text-xs border border-[#2d3139] rounded-lg hover:bg-[#1f232b] flex items-center gap-1.5"
+            >
+              Esc ✕
+            </button>
+          </div>
         </div>
 
         {/* Global Floating Status banners */}
@@ -600,12 +638,12 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
             >
               <Upload className="w-8 h-8 mx-auto mb-2 text-amber-500/80" />
               <p className="text-xs font-medium text-white mb-1">Drag knowledge files here, or browse files</p>
-              <p className="text-[10px] text-gray-400 font-mono">Supports .md, .txt, .json, .csv (Text sources)</p>
+              <p className="text-[10.5px] text-gray-400 font-mono">Supports PDF, Word (.docx), Slides (.pptx), Sheets (.xlsx), and Text files</p>
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileInputChange} 
-                accept=".txt,.md,.json,.csv" 
+                accept=".txt,.md,.json,.csv,.faq,.pdf,.docx,.pptx,.xlsx" 
                 className="hidden" 
               />
             </div>
@@ -835,9 +873,21 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
                       <div>
                         <div className="mb-3 pb-3 border-b border-[#2d3139]/40 flex items-center justify-between">
                           <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded uppercase tracking-wide">Ready for Retrieval</span>
-                          <span className="text-[9px] text-gray-500">{selectedFile.content.length} characters</span>
+                          {!selectedFile.isBinary && <span className="text-[9px] text-gray-500">{selectedFile.content.length} characters</span>}
                         </div>
-                        {selectedFile.content}
+                        {selectedFile.isBinary ? (
+                          <div id="multimodal-document-indicator" className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/15 text-center space-y-2 mt-2">
+                            <span className="inline-block p-2.5 bg-amber-500/10 rounded-xl text-amber-500 mb-1">
+                              <FileText className="w-5 h-5" />
+                            </span>
+                            <p className="text-xs font-semibold text-white">Office / PDF Data Fully Grounded</p>
+                            <p className="text-[10px] text-[#a0aab4] leading-relaxed max-w-xs mx-auto">
+                              This PDF, Word, PowerPoint, or Spreadsheet document is processed directly in Budi's Digital Twin semantic search. Gemini 3.5's native context window reads its elements during client chats. Plaintext preview is omitted.
+                            </p>
+                          </div>
+                        ) : (
+                          selectedFile.content
+                        )}
                       </div>
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 p-6 space-y-1">
