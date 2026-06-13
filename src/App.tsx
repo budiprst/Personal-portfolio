@@ -359,6 +359,10 @@ export default function App() {
               alt="Budi Prasetyo - AI-DX Transformation Specialist" 
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 shrink-0"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'><rect width='100' height='100' rx='16' fill='%23111317'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4, 4'/><text x='50%25' y='55%25' font-family='sans-serif' font-weight='800' font-size='28' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'>BP</text></svg>";
+              }}
             />
             <div>
               <h4 className="font-sans font-bold text-neutral-900 text-sm">Budi Prasetyo</h4>
@@ -402,6 +406,10 @@ export default function App() {
                 alt="Budi Prasetyo - AI-DX Transformation Specialist" 
                 className="w-full h-full object-cover grayscale-[8%] hover:grayscale-0 transition-all duration-700"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'><rect width='100' height='100' rx='16' fill='%23111317'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4, 4'/><text x='50%25' y='55%25' font-family='sans-serif' font-weight='800' font-size='28' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'>BP</text></svg>";
+                }}
               />
               <div className="absolute top-4 left-4 flex gap-1.5 flex-wrap">
                 <span className="inline-flex items-center gap-1 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 text-white font-mono text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg">
@@ -630,6 +638,10 @@ export default function App() {
                   alt={proj.title}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800";
+                  }}
                 />
                 
                 {/* Year tag */}

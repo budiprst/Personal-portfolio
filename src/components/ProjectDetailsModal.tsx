@@ -94,6 +94,10 @@ export default function ProjectDetailsModal({ project, onClose }: ProjectDetails
               alt={project.title} 
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover opacity-85"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800";
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
             <div className="absolute bottom-6 left-6 right-6 text-white">
@@ -131,6 +135,10 @@ export default function ProjectDetailsModal({ project, onClose }: ProjectDetails
                           alt={`Gallery preview ${i + 1}`} 
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=800";
+                          }}
                         />
                       </div>
                     ))}

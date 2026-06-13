@@ -144,6 +144,72 @@ function saveCustomProject(project: any) {
   fs.writeFileSync(CUSTOM_PROJECTS_FILE, JSON.stringify(current, null, 2));
 }
 
+function getRelatedProjectImage(title: string, category: string, tags: string[], description: string, index: number): string {
+  const text = `${title} ${category} ${tags.join(" ")} ${description}`.toLowerCase();
+  
+  // Specific patterns for different domains
+  if (text.includes("parking") || text.includes("car") || text.includes("traffic") || text.includes("vehicle") || text.includes("unair") || text.includes("スマートパーキング") || text.includes("駐車場")) {
+    const options = [
+      "https://images.unsplash.com/photo-1506015391300-4802dc74de2e?auto=format&fit=crop&q=80&w=800", // smart traffic
+      "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&q=80&w=800", // creative parking slots lines
+      "https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&q=80&w=800"  // modern night street parking
+    ];
+    return options[index % options.length];
+  }
+  
+  if (text.includes("color") || text.includes("harmonizer") || text.includes("palette") || text.includes("design system") || text.includes("kroma")) {
+    return "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&q=80&w=800"; // colorful dynamic abstract design
+  }
+  
+  if (text.includes("climate") || text.includes("environmental") || text.includes("weather") || text.includes("aether") || text.includes("telemetry")) {
+    return "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800"; // futuristic planet telemetry view
+  }
+
+  if (text.includes("nordic") || text.includes("furniture") || text.includes("living") || text.includes("scandinavian") || text.includes("interior")) {
+    return "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&q=80&w=800"; // minimalist scandinavian room view
+  }
+
+  if (text.includes("finance") || text.includes("bank") || text.includes("billing") || text.includes("invoice") || text.includes("payment") || text.includes("bussan") || text.includes("transaction") || text.includes("tax")) {
+    const options = [
+      "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=800", // ledger graphs financial figures
+      "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800", // business team whiteboard graphs
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800"  // charts and monitors
+    ];
+    return options[index % options.length];
+  }
+
+  if (text.includes("oracle") || text.includes("db") || text.includes("database") || text.includes("sql") || text.includes("migrate") || text.includes("ssis") || text.includes("ssrs") || text.includes("batch")) {
+    const options = [
+      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=800", // digital server rack networking nodes
+      "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=800", // server processing server tower glowing
+      "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=800"  // modern infrastructure wiring
+    ];
+    return options[index % options.length];
+  }
+
+  if (text.includes("mobile") || text.includes("app") || text.includes("native") || text.includes("flutter") || text.includes("android") || text.includes("ios") || text.includes("phone")) {
+    const options = [
+      "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&q=80&w=800", // iPhone application layout grids
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800", // colored design templates graph
+      "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"  // workspace desk with device
+    ];
+    return options[index % options.length];
+  }
+
+  const defaults = [
+    "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800", // clean high-contrast code snippet
+    "https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=800", // vibrant syntax highlighter terminal environment
+    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800", // minimalist developer laptop desk workspace
+    "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=800", // high-density product dashboard layout
+    "https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&q=80&w=800", // developer dual monitors coding setup
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800", // network grids
+    "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800", // team reviewing lines design
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=800"  // high-tech creative coding workspace
+  ];
+
+  return defaults[index % defaults.length];
+}
+
 // 2. Notion API Dynamic Gateway Endpoint
 app.post("/api/projects", async (req, res) => {
   // Use saved server-side credentials if available to protect Budi's keys from public visitors,
@@ -284,7 +350,7 @@ app.post("/api/projects", async (req, res) => {
     };
 
     // Robust mapping from Notion JSON schemas
-    const parsedProjects = await Promise.all(results.map(async (page: any) => {
+    const parsedProjects = await Promise.all(results.map(async (page: any, idx: number) => {
       const props = page.properties || {};
 
       // 1. Resolve Project Title / Name
@@ -406,7 +472,11 @@ app.post("/api/projects", async (req, res) => {
 
       // 11. Image banner URL fallback selector
       const imgProp = matchProp(props, "image", "Image", "画像", "添付画像", "アイキャッチ", "カバー画像");
-      const image = getTextProp(imgProp) || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800";
+      const rawImage = getTextProp(imgProp);
+      const isPlaceholder = !rawImage || rawImage.trim() === "" || rawImage === "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800";
+      const image = isPlaceholder 
+        ? getRelatedProjectImage(title, "Full-Stack Development", finalTechStack, description, idx)
+        : rawImage;
 
       // Assemble a fully loaded Markdown body automatically representing the rich schema blocks!
       const content = `
