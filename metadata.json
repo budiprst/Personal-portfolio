@@ -1,0 +1,6 @@
+{
+  "name": "Budi Prst Portfolio",
+  "description": "A high-performance personal branding website for Budi Prst, featuring visual design case studies, direct Notion dynamic syncing, and an interactive AI copilot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
