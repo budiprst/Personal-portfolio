@@ -484,7 +484,33 @@ ${osList.length > 0 ? `- **OS環境**: ${osList.join(", ")}` : ""}
 });
 
 // 3. Admin APIs to read & write Budi's exclusive settings
-app.get("/api/admin/config", (req, res) => {
+const ADMIN_PASSWORD = "19Delapan9-";
+const ADMIN_SESSION_TOKEN = "session_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+function requireAdmin(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  const tokenHeader = req.headers["x-admin-token"];
+  const token = authHeader ? authHeader.replace("Bearer ", "").trim() : (Array.isArray(tokenHeader) ? tokenHeader[0] : tokenHeader);
+
+  if (token && token === ADMIN_SESSION_TOKEN) {
+    return next();
+  }
+  return res.status(401).json({ error: "Access denied. Invalid or expired administrative session." });
+}
+
+// Admin login gateway
+app.post("/api/admin/login", (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ error: "Password is required." });
+  }
+  if (password === ADMIN_PASSWORD) {
+    return res.json({ success: true, token: ADMIN_SESSION_TOKEN });
+  }
+  return res.status(401).json({ error: "Incorrect password. Access denied to Twin Knowledge." });
+});
+
+app.get("/api/admin/config", requireAdmin, (req, res) => {
   const savedConfig = getSavedNotionConfig();
   // Safe return: do not send raw secret token to the browser, just confirm status
   res.json({
@@ -493,7 +519,7 @@ app.get("/api/admin/config", (req, res) => {
   });
 });
 
-app.post("/api/admin/config", (req, res) => {
+app.post("/api/admin/config", requireAdmin, (req, res) => {
   const { token, databaseId } = req.body;
   if (!token || !databaseId) {
     return res.status(400).json({ error: "Token and Database ID are mandatory." });
@@ -519,7 +545,7 @@ app.get("/api/admin/announcements", (req, res) => {
   return res.json([]);
 });
 
-app.post("/api/admin/announcements", (req, res) => {
+app.post("/api/admin/announcements", requireAdmin, (req, res) => {
   const { content } = req.body;
   if (!content) {
     return res.status(400).json({ error: "Content field is required." });
@@ -549,7 +575,7 @@ app.post("/api/admin/announcements", (req, res) => {
 });
 
 // 4. import/upload and use Gemini for unstructured document transformation
-app.post("/api/admin/ai-parse", async (req, res) => {
+app.post("/api/admin/ai-parse", requireAdmin, async (req, res) => {
   const { rawText, sourceName } = req.body;
   if (!rawText) {
     return res.status(400).json({ error: "No text or document contents to parse." });
@@ -610,8 +636,98 @@ Format your output STRICTLY as a single JSON object matching this schema. Do not
 });
 
 
+// 1.5. Knowledge base folder setup & API endpoints for Budi's Digital Twin RAG
+const KNOWLEDGE_DIR = path.join(process.cwd(), "digital_twin_knowledge");
+
+// Ensure the digital twin knowledge base folder exists
+if (!fs.existsSync(KNOWLEDGE_DIR)) {
+  fs.mkdirSync(KNOWLEDGE_DIR, { recursive: true });
+}
+
+// Get all knowledge base files
+app.get("/api/knowledge-files", requireAdmin, (req, res) => {
+  try {
+    if (!fs.existsSync(KNOWLEDGE_DIR)) {
+      return res.json([]);
+    }
+    const files = fs.readdirSync(KNOWLEDGE_DIR);
+    const fileDetails = files.map(file => {
+      const filePath = path.join(KNOWLEDGE_DIR, file);
+      const stats = fs.statSync(filePath);
+      return {
+        name: file,
+        size: stats.size,
+        updatedAt: stats.mtime.toISOString(),
+        extension: path.extname(file).toLowerCase()
+      };
+    });
+    return res.json(fileDetails);
+  } catch (err: any) {
+    console.error("Failed to list knowledge files:", err);
+    return res.status(500).json({ error: "Failed to list knowledge documents: " + err.message });
+  }
+});
+
+// View a knowledge base file content
+app.get("/api/knowledge-files/:name", requireAdmin, (req, res) => {
+  const fileName = req.params.name;
+  // Basic security path traversal check
+  if (fileName.includes("..") || fileName.includes("/") || fileName.includes("\\")) {
+    return res.status(400).json({ error: "Invalid file name selector." });
+  }
+  const filePath = path.join(KNOWLEDGE_DIR, fileName);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: "Knowledge document not found." });
+  }
+  try {
+    const rawContent = fs.readFileSync(filePath, "utf-8");
+    return res.json({ name: fileName, content: rawContent });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to read knowledge file: " + err.message });
+  }
+});
+
+// Create or overwrite a knowledge base file
+app.post("/api/knowledge-files", requireAdmin, (req, res) => {
+  const { name, content } = req.body;
+  if (!name || content === undefined) {
+    return res.status(400).json({ error: "Missing file name or content body parameter." });
+  }
+  // Sanitize name to prevent path traversals
+  const cleanName = path.basename(name).replace(/[^a-zA-Z0-9_\-\.]/g, "_");
+  if (!cleanName) {
+    return res.status(400).json({ error: "Invalid filename structure." });
+  }
+  try {
+    const filePath = path.join(KNOWLEDGE_DIR, cleanName);
+    fs.writeFileSync(filePath, content, "utf-8");
+    return res.json({ success: true, name: cleanName, message: "File synchronised successfully under digital twin folder." });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to save knowledge document: " + err.message });
+  }
+});
+
+// Delete a knowledge base file
+app.delete("/api/knowledge-files/:name", requireAdmin, (req, res) => {
+  const fileName = req.params.name;
+  if (fileName.includes("..") || fileName.includes("/") || fileName.includes("\\")) {
+    return res.status(400).json({ error: "Invalid file name selector." });
+  }
+  try {
+    const filePath = path.join(KNOWLEDGE_DIR, fileName);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      return res.json({ success: true, message: "File removed successfully from digital twin folder." });
+    }
+    return res.status(404).json({ error: "File not found." });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to delete knowledge document: " + err.message });
+  }
+});
+
+
 // 2. Chatbot proxy with Gemini 3.5 Flash
-const SYSTEM_INSTRUCTION = `
+const BASE_SYSTEM_INSTRUCTION = `
 You are Budi Prst's Digital Twin - a highly polished, helpful, and creative portfolio agent.
 Your priority is keeping Budi's professional footprint crisp, clear, and highly performant.
 
@@ -639,6 +755,53 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
+    // RAG METHODOLOGY: Precursor scanning and search
+    // Automatically read and compile all files in the './digital_twin_knowledge' folder to inject context
+    let knowledgeBaseContext = "";
+    if (fs.existsSync(KNOWLEDGE_DIR)) {
+      try {
+        const files = fs.readdirSync(KNOWLEDGE_DIR);
+        // Load text and markdown files as context resources
+        const permissibleFiles = files.filter(f => 
+          f.endsWith(".txt") || 
+          f.endsWith(".md") || 
+          f.endsWith(".json") || 
+          f.endsWith(".csv") || 
+          f.endsWith(".faq")
+        );
+        
+        const sourceBlocks: string[] = [];
+        for (const file of permissibleFiles) {
+          const filePath = path.join(KNOWLEDGE_DIR, file);
+          const rawContent = fs.readFileSync(filePath, "utf-8");
+          sourceBlocks.push(`SOURCE FILE: ${file}\n=== CONTENT START ===\n${rawContent}\n=== CONTENT END ===`);
+        }
+
+        if (sourceBlocks.length > 0) {
+          knowledgeBaseContext = `
+[DIGITAL TWIN RAG KNOWLEDGE BASE]
+You are equipped with a personal database of files uploaded by Budi himself. 
+Search this corpus carefully to answering queries. ALWAYS prioritize the facts and answers inside these source files.
+If information is retrieved from here, construct a friendly reply referencing these uploaded sources where appropriate.
+
+${sourceBlocks.join("\n\n")}
+`;
+        }
+      } catch (err) {
+        console.error("Error reading knowledge folder for RAG:", err);
+      }
+    }
+
+    // Blend base instructions with dyn RAG context
+    const finalSystemInstruction = `${BASE_SYSTEM_INSTRUCTION}
+${knowledgeBaseContext}
+
+Instructions on RAG Matching:
+- Prioritize facts in the [DIGITAL TWIN RAG KNOWLEDGE BASE] over general info.
+- If the user asks general questions about Budi that are solved in files, reference the facts accurately.
+- Keep output extremely clear, helpful, professional, and compact (1-3 lines).
+`;
+
     // Format incoming chat log into standard SDK conversational array
     const conversationHistory = (history || []).map((h: any) => ({
       role: h.role === 'model' ? 'model' : 'user',
@@ -652,7 +815,7 @@ app.post("/api/chat", async (req, res) => {
         { role: "user", parts: [{ text: message }] }
       ],
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: finalSystemInstruction,
         temperature: 0.7
       }
     });

@@ -29,6 +29,7 @@ import { DEFAULT_PROJECTS } from "./data";
 import ProjectDetailsModal from "./components/ProjectDetailsModal";
 import AIChatBubble from "./components/AIChatBubble";
 import AdminPanel from "./components/AdminPanel";
+import budiPortrait from "./assets/images/budi_portrait.png";
 
 export default function App() {
   const [projects, setProjects] = useState<Project[]>(DEFAULT_PROJECTS);
@@ -323,10 +324,10 @@ export default function App() {
             <button
               id="header-btn-toggle-owner-portal"
               onClick={() => setIsAdminOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 bg-white text-gray-700 hover:bg-neutral-50 tracking-tight font-sans text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 border border-amber-500/30 bg-amber-500/10 text-amber-800 hover:bg-amber-500/15 tracking-tight font-sans text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
             >
-              <Lock size={13} className="text-gray-405 shrink-0" />
-              <span>Owner Portal</span>
+              <Sparkles size={13} className="text-amber-600 shrink-0 animate-pulse" />
+              <span>Twin Knowledge Hub</span>
             </button>
           </div>
         </div>
@@ -354,7 +355,7 @@ export default function App() {
           {/* Mobile Profile Block: Only visible below lg */}
           <div className="lg:hidden flex flex-col sm:flex-row items-start sm:items-center gap-4 p-5 bg-white border border-gray-150 rounded-2xl mb-8 w-full max-w-md shadow-sm">
             <img 
-              src="/src/assets/images/budi_portrait.png" 
+              src={budiPortrait} 
               alt="Budi Prasetyo - AI-DX Transformation Specialist" 
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 shrink-0"
               referrerPolicy="no-referrer"
@@ -397,7 +398,7 @@ export default function App() {
           >
             <div className="relative h-[330px] bg-neutral-100 overflow-hidden">
               <img 
-                src="/src/assets/images/budi_portrait.png" 
+                src={budiPortrait} 
                 alt="Budi Prasetyo - AI-DX Transformation Specialist" 
                 className="w-full h-full object-cover grayscale-[8%] hover:grayscale-0 transition-all duration-700"
                 referrerPolicy="no-referrer"

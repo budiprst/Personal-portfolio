@@ -1,30 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   motion, 
   AnimatePresence 
 } from "motion/react";
 import { 
-  Lock, 
-  Unlock, 
-  Database, 
-  Megaphone, 
-  FileText, 
-  Upload, 
-  Calendar, 
-  FileEdit, 
-  CheckCircle, 
+  Sparkles,
+  FolderOpen,
+  FileText,
+  Upload,
+  Plus,
+  Trash2,
+  CheckCircle,
   AlertCircle,
   Loader2,
   RefreshCw,
-  LogOut,
-  Sparkles
+  Eye,
+  Send,
+  BookOpen,
+  X,
+  PlusCircle,
+  Clock,
+  ArrowRight,
+  Code
 } from "lucide-react";
-import { 
-  googleSignIn, 
-  logOutOwner, 
-  getCachedToken, 
-  initAuth 
-} from "../firebase";
+
+interface KnowledgeFile {
+  name: string;
+  size: number;
+  updatedAt: string;
+  extension: string;
+}
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -32,58 +37,153 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelProps) {
-  const [user, setUser] = useState<any>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Authentication & session variables
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminToken, setAdminToken] = useState("");
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  const [files, setFiles] = useState<KnowledgeFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<{ name: string; content: string } | null>(null);
+  const [fetchingFile, setFetchingFile] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Announcement State
+  // New File Creator State
+  const [newFileName, setNewFileName] = useState("");
+  const [newFileContent, setNewFileContent] = useState("");
+  const [savingFile, setSavingFile] = useState(false);
+
+  // Drag-and-drop file upload state
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Live Test Chat Sandbox in Gem panel
+  const [sandboxQuery, setSandboxQuery] = useState("");
+  const [sandboxMessages, setSandboxMessages] = useState<Array<{ id: string; sender: "user" | "assistant"; text: string }>>([]);
+  const [sandboxTyping, setSandboxTyping] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Notion Settings (Direct access - removed owner login)
+  const [notionDatabaseId, setNotionDatabaseId] = useState("");
+  const [notionToken, setNotionToken] = useState("");
+  const [savingNotion, setSavingNotion] = useState(false);
+  const [notionStatus, setNotionStatus] = useState<any>(null);
+
+  // Announcements (Direct access)
   const [announcementText, setAnnouncementText] = useState("");
   const [postingAnnouncement, setPostingAnnouncement] = useState(false);
   const [recentAnnouncements, setRecentAnnouncements] = useState<any[]>([]);
 
-  // Notion Settings State
-  const [notionToken, setNotionToken] = useState("");
-  const [notionDatabaseId, setNotionDatabaseId] = useState("");
-  const [notionStatus, setNotionStatus] = useState<any>(null);
-  const [savingNotion, setSavingNotion] = useState(false);
+  // Selection of creator tabs
+  const [activeEditorTab, setActiveEditorTab] = useState<"create" | "notion" | "announcement">("create");
 
-  // Text/File Import State
-  const [unstructuredText, setUnstructuredText] = useState("");
-  const [customProjectTitle, setCustomProjectTitle] = useState("");
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [parsedProject, setParsedProject] = useState<any>(null);
-
-  // Google Calendar View State
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
-  const [fetchingCalendar, setFetchingCalendar] = useState(false);
-
-  // Google Doc Import State
-  const [googleDocId, setGoogleDocId] = useState("");
-  const [fetchingGoogleDoc, setFetchingGoogleDoc] = useState(false);
-
-  // Initialize auth state
+  // Load session token on mount
   useEffect(() => {
-    const unsubscribe = initAuth(
-      (currentUser, accessToken) => {
-        setUser(currentUser);
-        setToken(accessToken);
-        setLoading(false);
-        fetchConfig();
-        fetchAnnouncements();
-      },
-      () => {
-        setUser(null);
-        setToken(null);
-        setLoading(false);
-      }
-    );
-    return () => unsubscribe();
+    const storedToken = sessionStorage.getItem("budi_admin_token");
+    if (storedToken) {
+      setAdminToken(storedToken);
+      setIsAdminLoggedIn(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (isAdminLoggedIn) {
+      fetchFiles();
+      fetchConfig();
+      fetchAnnouncements();
+    }
+
+    // Default chat system message for twin sandbox
+    setSandboxMessages([
+      {
+        id: "sandbox-w",
+        sender: "assistant",
+        text: "Hi! I'm Budi's Digital Twin sandbox. Ask me any specialized query! I will automatically retrieve background details from your uploaded files below using our RAG pipeline before responding."
+      }
+    ]);
+  }, [isAdminLoggedIn]);
+
+  // Scroll live chat sandbox
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [sandboxMessages, sandboxTyping]);
+
+  // Helper auth fetch wrapper
+  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const token = adminToken || sessionStorage.getItem("budi_admin_token") || "";
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string>),
+      "Authorization": `Bearer ${token}`,
+      "X-Admin-Token": token
+    };
+
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      sessionStorage.removeItem("budi_admin_token");
+      setAdminToken("");
+      setIsAdminLoggedIn(false);
+      showStatus("error", "Your administrational session has expired or was refused.");
+    }
+    return res;
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPasswordInput.trim()) {
+      setLoginError("Password cannot be blank.");
+      return;
+    }
+    setLoggingIn(true);
+    setLoginError("");
+
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: adminPasswordInput })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        sessionStorage.setItem("budi_admin_token", data.token);
+        setAdminToken(data.token);
+        setIsAdminLoggedIn(true);
+        setAdminPasswordInput("");
+      } else {
+        const err = await res.json();
+        setLoginError(err.error || "Incorrect password.");
+      }
+    } catch (err: any) {
+      setLoginError("Unable to reach login service. " + err.message);
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const fetchFiles = async () => {
+    setLoadingFiles(true);
+    try {
+      const res = await fetchWithAuth("/api/knowledge-files");
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data);
+      } else {
+        showStatus("error", "Failed to retrieve twin knowledge base folder.");
+      }
+    } catch (err: any) {
+      showStatus("error", "Connection exception retrieving file directory: " + err.message);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch("/api/admin/config");
+      const res = await fetchWithAuth("/api/admin/config");
       if (res.ok) {
         const data = await res.json();
         setNotionStatus(data);
@@ -108,46 +208,198 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
     }
   };
 
-  const handleLogin = async () => {
-    setLoading(true);
-    setStatusMsg(null);
+  const handleViewFile = async (fileName: string) => {
+    setFetchingFile(true);
     try {
-      const result = await googleSignIn();
-      if (result) {
-        setUser(result.user);
-        setToken(result.accessToken);
-        fetchConfig();
-        fetchAnnouncements();
-        showStatus("success", `Authenticated as ${result.user.displayName || "Owner"}`);
+      const res = await fetchWithAuth(`/api/knowledge-files/${encodeURIComponent(fileName)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedFile(data);
+      } else {
+        showStatus("error", "Failed to load content for: " + fileName);
       }
     } catch (err: any) {
-      showStatus("error", err.message || "Failed to authenticating session.");
+      showStatus("error", "Error loading document: " + err.message);
     } finally {
-      setLoading(false);
+      setFetchingFile(false);
     }
   };
 
+  const handleSaveFile = async (nameToSave: string, contentToSave: string, isSilent: boolean = false) => {
+    if (!nameToSave.trim() || contentToSave === undefined) {
+      showStatus("error", "Please provide a valid file name and document content.");
+      return;
+    }
+
+    // Auto-append .md if no extension exists
+    let cleanName = nameToSave.includes(".") ? nameToSave : `${nameToSave}.md`;
+
+    setSavingFile(true);
+    try {
+      const res = await fetchWithAuth("/api/knowledge-files", {
+        method: "POST",
+        body: JSON.stringify({ name: cleanName, content: contentToSave })
+      });
+
+      if (res.ok) {
+        if (!isSilent) {
+          showStatus("success", `Knowledge document "${cleanName}" written successfully into twin folder!`);
+        }
+        setNewFileName("");
+        setNewFileContent("");
+        fetchFiles();
+        // Clear selected view if editing same file
+        if (selectedFile?.name === cleanName) {
+          setSelectedFile({ name: cleanName, content: contentToSave });
+        }
+      } else {
+        const err = await res.json();
+        showStatus("error", err.error || "Failed to commit knowledge file.");
+      }
+    } catch (err: any) {
+      showStatus("error", "API Error: " + err.message);
+    } finally {
+      setSavingFile(false);
+    }
+  };
+
+  const handleDeleteFile = async (e: React.MouseEvent, fileName: string) => {
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to delete "${fileName}"? This will vanish Budi's twin knowledge details stored here.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetchWithAuth(`/api/knowledge-files/${encodeURIComponent(fileName)}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        showStatus("success", `Knowledge source "${fileName}" deleted.`);
+        fetchFiles();
+        if (selectedFile?.name === fileName) {
+          setSelectedFile(null);
+        }
+      } else {
+        showStatus("error", "Could not remove knowledge block.");
+      }
+    } catch (err: any) {
+      showStatus("error", "Error requesting delete action: " + err.message);
+    }
+  };
+
+  // Drag and drop text files utilities
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleParseUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleParseUpload(e.target.files[0]);
+    }
+  };
+
+  const handleParseUpload = (file: File) => {
+    const permissibleExtensions = [".txt", ".md", ".json", ".csv", ".faq"];
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    
+    if (!permissibleExtensions.includes(ext)) {
+      showStatus("error", "Unsupported format. Please upload text, markdown, json, csv, or faq files.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      handleSaveFile(file.name, content);
+    };
+    reader.onerror = () => {
+      showStatus("error", "Failed to deserialize uploaded file contents.");
+    };
+    reader.readAsText(file);
+  };
+
+  // Chat sandbox query handles
+  const handleSandboxSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = sandboxQuery.trim();
+    if (!query || sandboxTyping) return;
+
+    const userMsg = {
+      id: Math.random().toString(),
+      sender: "user" as const,
+      text: query
+    };
+
+    setSandboxMessages(prev => [...prev, userMsg]);
+    setSandboxQuery("");
+    setSandboxTyping(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: query,
+          history: sandboxMessages.filter(m => m.id !== "sandbox-w").map(m => ({
+            role: m.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: m.text }]
+          }))
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSandboxMessages(prev => [...prev, {
+          id: Math.random().toString(),
+          sender: "assistant" as const,
+          text: data.text || "No reply processed by our digital twin pipeline."
+        }]);
+      } else {
+        showStatus("error", "Error query chatbot API endpoint.");
+      }
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setSandboxTyping(false);
+    }
+  };
+
+  // Notion credentials submission
   const handleSaveNotion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notionToken || !notionDatabaseId) {
-      showStatus("error", "Please provide both the Notion secret token and Database ID.");
+      showStatus("error", "Secret Token & Database ID are required properties.");
       return;
     }
     setSavingNotion(true);
     try {
-      const res = await fetch("/api/admin/config", {
+      const res = await fetchWithAuth("/api/admin/config", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: notionToken, databaseId: notionDatabaseId })
       });
       if (res.ok) {
-        showStatus("success", "Notion portfolio integration registered securely on server.");
+        showStatus("success", "Notion portfolio links updated successfully.");
         setNotionToken("");
         fetchConfig();
         onRefreshProjects();
       } else {
-        const err = await res.json();
-        showStatus("error", err.error || "Failed to update configuration.");
+        showStatus("error", "Failed to lock in portfolio config.");
       }
     } catch (err: any) {
       showStatus("error", err.message);
@@ -156,18 +408,27 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
     }
   };
 
-  const handleLogout = async () => {
-    setLoading(true);
+  // News broadcast submission
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!announcementText.trim()) return;
+    setPostingAnnouncement(true);
     try {
-      await logOutOwner();
-      setUser(null);
-      setToken(null);
-      setCalendarEvents([]);
-      showStatus("success", "Session cleared safely.");
-    } catch (e: any) {
-      showStatus("error", "Logout failed: " + e.message);
+      const res = await fetchWithAuth("/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify({ content: announcementText })
+      });
+      if (res.ok) {
+        showStatus("success", "Active news banner broadcasted.");
+        setAnnouncementText("");
+        fetchAnnouncements();
+      } else {
+        showStatus("error", "Failed to write announcement.");
+      }
+    } catch (err: any) {
+      showStatus("error", err.message);
     } finally {
-      setLoading(false);
+      setPostingAnnouncement(false);
     }
   };
 
@@ -178,201 +439,135 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
     }, 6000);
   };
 
-
-
-  // 2. Post News Announcement
-  const handlePostAnnouncement = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!announcementText.trim()) return;
-    setPostingAnnouncement(true);
-    try {
-      const res = await fetch("/api/admin/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: announcementText })
-      });
-      if (res.ok) {
-        showStatus("success", "Announcement published successfully to public portfolio.");
-        setAnnouncementText("");
-        fetchAnnouncements();
-      } else {
-        showStatus("error", "Failed to publish announcement.");
-      }
-    } catch (e: any) {
-      showStatus("error", e.message);
-    } finally {
-      setPostingAnnouncement(false);
-    }
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1048576).toFixed(1)} MB`;
   };
 
-  // 3. AI Parsing Ingestion (Text/File payload handler)
-  const handleTextImport = async (textToParse: string, source: string) => {
-    if (!textToParse.trim()) {
-      showStatus("error", "Text content is empty.");
-      return;
-    }
-    setUploadingFile(true);
-    setParsedProject(null);
-    try {
-      const res = await fetch("/api/admin/ai-parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: textToParse, sourceName: source })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setParsedProject(data.project);
-        showStatus("success", "Gemini parsed and appended case study into your portfolio!");
-        onRefreshProjects();
-        setUnstructuredText("");
-      } else {
-        const err = await res.json();
-        showStatus("error", err.error || "AI could not partition your text.");
-      }
-    } catch (err: any) {
-      showStatus("error", err.message);
-    } finally {
-      setUploadingFile(false);
-    }
-  };
+  if (!isAdminLoggedIn) {
+    return (
+      <div id="admin-panel" className="fixed inset-0 bg-[#0c0d0e]/95 backdrop-blur-md z-50 overflow-y-auto flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.96, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 15 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="bg-[#121417] border border-[#2d3139] rounded-2xl max-w-md w-full text-[#e3e6eb] shadow-2xl overflow-hidden flex flex-col p-6 space-y-6"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="p-2 bg-[#2d3139]/80 rounded-xl text-amber-500">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+              </span>
+              <h2 className="font-sans text-xs font-extrabold tracking-wider text-white uppercase">
+                Twin Hub Security Gate
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-[11px] text-[#a0aab4] hover:text-white border border-[#2d3139] hover:bg-[#1c1f24] px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
 
-  // Drag and Drop File Handlers
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      handleTextImport(content, `Uploaded File: ${file.name}`);
-    };
-    reader.readAsText(file);
-  };
+          {/* Prompt info */}
+          <div className="space-y-2">
+            <p className="text-xs text-[#a0aab4] font-sans leading-relaxed">
+              Enter Budi's administrative master password to securely authenticate your session and manage the Digital Twin's files, news announcements, and Notion settings.
+            </p>
+          </div>
 
-  // 4. Integrated Google Calendar Fetcher
-  const handleFetchCalendar = async () => {
-    if (!token) {
-      showStatus("error", "No Google access token. Please log in again.");
-      return;
-    }
-    setFetchingCalendar(true);
-    try {
-      const timeMin = new Date().toISOString();
-      const res = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events?orderBy=startTime&singleEvents=true&timeMin=${timeMin}&maxResults=10`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setCalendarEvents(data.items || []);
-        showStatus("success", `Retrieved ${data.items?.length || 0} calendar events.`);
-      } else {
-        showStatus("error", "Error requesting Google Calendar. Scopes might be unauthorized.");
-      }
-    } catch (err: any) {
-      showStatus("error", "Calendar fetch exception: " + err.message);
-    } finally {
-      setFetchingCalendar(false);
-    }
-  };
+          {/* Password submission form */}
+          <form id="admin-login-form" onSubmit={handleLoginSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[9px] uppercase font-mono text-gray-400 mb-1.5 font-bold tracking-widest">Master Password</label>
+              <input
+                id="admin-password-input"
+                type="password"
+                placeholder="••••••••••••"
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                autoFocus
+                className="w-full text-xs font-mono bg-[#0c0d0e] border border-[#2d3139] rounded-xl px-4 py-3 text-white placeholder-gray-700 focus:outline-none focus:border-amber-500 transition-colors"
+              />
+            </div>
 
-  // 5. Integrated Google Docs Fetcher and Case Ingestion
-  const handleImportGoogleDoc = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!googleDocId) {
-      showStatus("error", "Please provide a valid Google Doc ID.");
-      return;
-    }
-    if (!token) {
-      showStatus("error", "Requires active Google Sign-In profile.");
-      return;
-    }
-    setFetchingGoogleDoc(true);
-    try {
-      const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${googleDocId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!docRes.ok) {
-        showStatus("error", `Failed checking document content. Confirm permission access for doc ID.`);
-        setFetchingGoogleDoc(false);
-        return;
-      }
-      const docData = await docRes.json();
-      
-      // Extract texts using Google Doc schema helpers
-      let parsedText = "";
-      if (docData.body && docData.body.content) {
-        for (const element of docData.body.content) {
-          if (element.paragraph && element.paragraph.elements) {
-            for (const el of element.paragraph.elements) {
-              if (el.textRun && el.textRun.content) {
-                parsedText += el.textRun.content;
-              }
-            }
-          }
-        }
-      }
+            {loginError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-sans flex items-start gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{loginError}</span>
+              </div>
+            )}
 
-      if (!parsedText.trim()) {
-        showStatus("error", "Document appears to have no text elements.");
-        setFetchingGoogleDoc(false);
-        return;
-      }
-
-      showStatus("success", "Successfully parsed Doc! Invoking Gemini analysis model...");
-      await handleTextImport(parsedText, `Google Doc: ${docData.title || "Untitled Document"}`);
-      setGoogleDocId("");
-
-    } catch (err: any) {
-      showStatus("error", "Docs API connection exception: " + err.message);
-    } finally {
-      setFetchingGoogleDoc(false);
-    }
-  };
+            <button
+              id="admin-login-submit"
+              type="submit"
+              disabled={loggingIn || !adminPasswordInput.trim()}
+              className="w-full text-xs font-mono font-bold text-black bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 rounded-xl py-3 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-amber-400/20"
+            >
+              {loggingIn ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Configuring Session...</span>
+                </>
+              ) : (
+                <>
+                  <span>Unlock Gateway</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div id="admin-panel" className="fixed inset-0 bg-[#0c0d0e]/95 backdrop-blur-md z-50 overflow-y-auto flex items-center justify-center p-4">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        initial={{ opacity: 0, scale: 0.96, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-        className="bg-[#121417] border border-[#2d3139] rounded-xl max-w-4xl w-full text-[#e3e6eb] shadow-2xl p-6 sm:p-8 relative"
+        exit={{ opacity: 0, scale: 0.96, y: 15 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="bg-[#121417] border border-[#2d3139] rounded-2xl max-w-7xl w-full text-[#e3e6eb] shadow-2xl overflow-hidden flex flex-col h-[90vh]"
       >
-        {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-[#2d3139] pb-4 mb-6">
+        {/* Workspace Top Bar */}
+        <div className="flex items-center justify-between border-b border-[#2d3139] px-6 py-4 bg-[#16191f] text-white shrink-0">
           <div className="flex items-center gap-3">
-            <span className="p-2 bg-[#2d3139] text-[#b8c2cc] rounded-lg">
-              {user ? <Unlock className="w-5 h-5 text-emerald-400" /> : <Lock className="w-5 h-5" />}
+            <span className="p-2 bg-[#2d3139]/80 rounded-xl text-amber-500">
+              <Sparkles className="w-5 h-5 animate-pulse" />
             </span>
             <div>
-              <h2 className="font-mono text-lg font-medium tracking-tight text-white flex items-center gap-2">
-                Budi's Owner Portal
-                {user && <span className="text-xs bg-emerald-500/10 text-emerald-400 font-normal px-2 py-0.5 rounded border border-emerald-500/20">Authenticated Owner</span>}
+              <h2 className="font-sans text-base font-extrabold tracking-tight flex items-center gap-2">
+                Digital Twin Gem Workspace
+                <span className="text-[10px] bg-amber-500/10 text-amber-400 font-mono px-2 py-0.5 rounded border border-amber-500/20 uppercase tracking-widest font-bold">Active RAG Engine</span>
               </h2>
               <p className="text-xs text-[#a0aab4] font-sans">
-                Setup persistent database pipelines, edit alerts, and utilize Gemini to ingest telemetry documents.
+                Customize your Digital Twin's brain by storing markdown or text documents in our searchable knowledge folder.
               </p>
             </div>
           </div>
           <button 
             id="close-admin-btn"
             onClick={onClose}
-            className="text-[#a0aab4] hover:text-white transition-colors p-2 font-mono text-sm border border-[#2d3139] rounded-lg hover:bg-[#1a1d23]"
+            className="text-[#a0aab4] hover:text-white transition-all p-2 font-mono text-xs border border-[#2d3139] rounded-lg hover:bg-[#1f232b] flex items-center gap-1.5"
           >
             Esc ✕
           </button>
         </div>
 
-        {/* Global Status messages feedback */}
+        {/* Global Floating Status banners */}
         <AnimatePresence>
           {statusMsg && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className={`p-3 rounded-lg mb-6 flex items-start gap-2 border text-sm font-sans ${
+              exit={{ opacity: 0, y: -8 }}
+              className={`mx-6 mt-4 p-3 rounded-xl flex items-start gap-2 border text-xs font-sans shrink-0 ${
                 statusMsg.type === "success" 
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
                   : "bg-red-500/10 text-red-400 border-red-500/20"
@@ -384,303 +579,339 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
           )}
         </AnimatePresence>
 
-        {/* Guest Lock view */}
-        {!user ? (
-          <div className="py-12 flex flex-col items-center text-center max-w-md mx-auto">
-            <div className="w-16 h-16 rounded-full bg-[#1c1f26] border border-[#2d3139] flex items-center justify-center text-white mb-4 shadow-inner">
-              <Lock className="w-7 h-7 text-[#8c9ba5]" />
-            </div>
-            <h3 className="font-mono text-md text-white mb-2 font-medium">Budi's Exclusive Owner Authorization</h3>
-            <p className="text-sm text-[#a0aab4] font-sans mb-6 leading-relaxed">
-              Sign in with Google using Budi's administrator credentials to enable write states, sync Google Docs, read Google Calendar meetings, and maintain database mappings.
-            </p>
-            {loading ? (
-              <div className="flex items-center gap-2 text-sm font-mono text-[#a0aab4]">
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                Validating identity layers...
-              </div>
-            ) : (
-              <button
-                id="google-owner-signin"
-                onClick={handleLogin}
-                className="gsi-material-button text-black w-full"
-              >
-                <div className="gsi-material-button-state"></div>
-                <div className="gsi-material-button-content-wrapper">
-                  <div className="gsi-material-button-icon">
-                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style={{ display: "block" }}>
-                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
-                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                    </svg>
-                  </div>
-                  <span className="gsi-material-button-contents font-sans">Authorize Administrator session</span>
-                </div>
-              </button>
-            )}
-          </div>
-        ) : (
-          /* Authenticated Dashboard Panel */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1 max-h-[70vh] overflow-y-auto">
+        {/* Main Workspace split panel grid */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0">
+          
+          {/* LEFT COLUMN (GRID 5): Knowledge Folder Inventory & Creation */}
+          <div className="lg:col-span-5 border-r border-[#2d3139] flex flex-col min-h-0 bg-[#0c0d0e]/40 p-5 overflow-y-auto space-y-5">
             
-            {/* LEFT COLUMN: Broadcast alerts & scheduling */}
-            <div className="space-y-6">
+            {/* Folder Dropzone */}
+            <div 
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
+                dragActive 
+                  ? "border-amber-500 bg-amber-500/5 text-amber-400" 
+                  : "border-[#2d3139] hover:border-[#3a3f4a] bg-[#15171d]/60 text-gray-450"
+              }`}
+            >
+              <Upload className="w-8 h-8 mx-auto mb-2 text-amber-500/80" />
+              <p className="text-xs font-medium text-white mb-1">Drag knowledge files here, or browse files</p>
+              <p className="text-[10px] text-gray-400 font-mono">Supports .md, .txt, .json, .csv (Text sources)</p>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileInputChange} 
+                accept=".txt,.md,.json,.csv" 
+                className="hidden" 
+              />
+            </div>
 
-              {/* 1. NOTION GATEWAY BLOCK */}
-              <div className="p-4 border border-[#2d3139] bg-[#1a1d23]/50 rounded-lg">
-                <div className="flex items-center justify-between mb-3 text-white">
-                  <h4 className="font-mono text-sm font-semibold flex items-center gap-2">
-                    <Database className="w-4 h-4 text-sky-400" />
-                    1. Notion Database Source
-                  </h4>
-                  {notionStatus?.hasNotionToken ? (
-                    <span className="text-[10px] uppercase font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 px-2 py-0.5 rounded">
-                      Linked
-                    </span>
-                  ) : (
-                    <span className="text-[10px] uppercase font-mono bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded">
-                      Local Mocks Only
-                    </span>
-                  )}
-                </div>
-                
-                <p className="text-xs text-[#a0aab4] font-sans mb-4 leading-relaxed">
-                  Provide your master Notion Integration secret token and database UUID.
-                  Once synced, visitors will view real case studies pulled directly from your Notion workspace dynamically instead of having to input their credentials.
-                </p>
-
-                <form onSubmit={handleSaveNotion} className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Integration Token</label>
-                    <input 
-                      type="password"
-                      placeholder="secret_..."
-                      value={notionToken}
-                      onChange={(e) => setNotionToken(e.target.value)}
-                      className="w-full text-xs font-mono bg-[#111317] border border-[#2d3139] rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-sky-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Database ID</label>
-                    <input 
-                      type="text"
-                      placeholder="e.g. 1a2b3c4d5e..."
-                      value={notionDatabaseId}
-                      onChange={(e) => setNotionDatabaseId(e.target.value)}
-                      className="w-full text-xs font-mono bg-[#111317] border border-[#2d3139] rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-sky-500"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={savingNotion}
-                    className="w-full text-xs font-mono font-medium hover:text-white bg-[#1c1f26] hover:bg-[#252a35] text-white border border-[#2d3139] rounded py-2 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    {savingNotion ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Bind Master Notion Pipeline"}
-                  </button>
-                </form>
+            {/* Folder Inventory List */}
+            <div className="bg-[#15171c]/50 border border-[#2d3139] rounded-xl overflow-hidden flex flex-col flex-1 min-h-[220px]">
+              <div className="px-4 py-3 bg-[#1a1d23] border-b border-[#2d3139] flex items-center justify-between shrink-0">
+                <span className="text-xs font-mono font-bold text-gray-200 uppercase tracking-widest flex items-center gap-1.5">
+                  <FolderOpen className="w-3.5 h-3.5 text-amber-500" />
+                  Twin Knowledge Folder
+                </span>
+                <span className="text-[10px] font-mono bg-[#282d37] text-gray-450 px-2.5 py-0.5 rounded-full">
+                  {files.length} Files
+                </span>
               </div>
 
-              {/* 2. ANNOUNCEMENTS EDITOR */}
-              <div className="p-4 border border-[#2d3139] bg-[#1a1d23]/50 rounded-lg">
-                <h4 className="font-mono text-sm font-semibold text-white flex items-center gap-2 mb-2">
-                  <Megaphone className="w-4 h-4 text-purple-400" />
-                  2. Broadcast Alerts & Status
-                </h4>
-                <p className="text-xs text-[#a0aab4] font-sans mb-3">
-                  Post high-contrast news or status milestones that pop up on your global index header.
-                </p>
-                <form onSubmit={handlePostAnnouncement} className="space-y-3">
-                  <textarea
-                    rows={2}
-                    placeholder="e.g., 'Currently taking select React / ThreeJS visual architecture engagements for Q3 2026!'"
-                    value={announcementText}
-                    onChange={(e) => setAnnouncementText(e.target.value)}
-                    className="w-full text-xs font-sans bg-[#111317] border border-[#2d3139] rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={postingAnnouncement || !announcementText.trim()}
-                    className="w-full text-xs font-mono font-medium hover:text-white bg-[#1c1f26] hover:bg-[#252a35] text-white border border-[#2d3139] rounded py-1.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    {postingAnnouncement ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Publish Broadcast Card"}
-                  </button>
-                </form>
-
-                {recentAnnouncements.length > 0 && (
-                  <div className="mt-3 border-t border-[#2d3139]/40 pt-3">
-                    <h5 className="text-[10px] uppercase font-mono text-gray-400 mb-2">Published:</h5>
-                    <div className="space-y-2 max-h-[100px] overflow-y-auto">
-                      {recentAnnouncements.map((ann, i) => (
-                        <div key={i} className="text-[11px] bg-[#121417] p-2 rounded border border-[#2d3139]/30 font-sans flex justify-between items-start">
-                          <span className="text-gray-300 line-clamp-2">{ann.content}</span>
-                          <span className="text-[9px] font-mono text-gray-500 shrink-0 ml-1">
-                            {new Date(ann.timestamp).toLocaleDateString()}
-                          </span>
+              <div className="flex-1 overflow-y-auto p-2">
+                {loadingFiles ? (
+                  <div className="h-full flex flex-col items-center justify-center p-8 text-gray-500 gap-1 text-xs">
+                    <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+                    <span>Indexing brain files...</span>
+                  </div>
+                ) : files.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center p-8 text-center text-xs text-gray-500 space-y-1.5">
+                    <BookOpen className="w-8 h-8 text-gray-600 mb-1" />
+                    <p className="font-semibold text-gray-400">Knowledge folder is empty</p>
+                    <p className="text-[10.5px] leading-relaxed max-w-[240px]">Upload professional profiles, experiences, or project text to seed your twin!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {files.map((file) => (
+                      <div
+                        id={`twin-key-file-${file.name}`}
+                        key={file.name}
+                        onClick={() => handleViewFile(file.name)}
+                        className={`group p-2.5 rounded-lg border text-left transition-colors cursor-pointer flex items-center justify-between ${
+                          selectedFile?.name === file.name
+                            ? "bg-amber-500/10 border-amber-500/30 text-white"
+                            : "bg-[#101216]/60 border-transparent hover:border-[#2d3139] text-[#b8c2cc]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <FileText className={`w-3.5 h-3.5 shrink-0 ${selectedFile?.name === file.name ? 'text-amber-400' : 'text-gray-450'}`} />
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-medium font-mono truncate text-white">{file.name}</h4>
+                            <div className="flex items-center gap-1.5 text-[9.5px] text-gray-500 mt-0.5 font-mono">
+                              <span>{formatSize(file.size)}</span>
+                              <span>•</span>
+                              <span>{new Date(file.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="p-1 text-gray-500 hover:text-white rounded transition-colors bg-[#191c22]">
+                            <Eye className="w-3 h-3" />
+                          </span>
+                          <button
+                            onClick={(e) => handleDeleteFile(e, file.name)}
+                            className="p-1 text-gray-500 hover:text-red-400 rounded transition-colors bg-[#191c22]"
+                            title="Delete file"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* LOGOUT */}
-              <div className="flex items-center justify-between p-3 border border-red-500/10 rounded-lg bg-red-500/5">
-                <div className="text-xs font-sans text-gray-400">
-                  Logged in as <span className="font-mono text-white">{user.email}</span>
-                </div>
+            {/* Ingest Tabs & Creators */}
+            <div className="bg-[#15171c]/50 border border-[#2d3139] rounded-xl overflow-hidden shrink-0">
+              <div className="grid grid-cols-3 border-b border-[#2d3139] bg-[#1a1d23] text-xs font-mono">
                 <button
-                  onClick={handleLogout}
-                  className="text-xs font-mono text-red-400 hover:text-red-300 flex items-center gap-1"
+                  onClick={() => setActiveEditorTab("create")}
+                  className={`py-2.5 border-r border-[#2d3139] font-semibold flex items-center justify-center gap-1.5 ${
+                    activeEditorTab === "create" ? "text-amber-400 bg-[#121417]" : "text-gray-400 hover:text-white"
+                  }`}
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Logout
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  Add File
+                </button>
+                <button
+                  onClick={() => setActiveEditorTab("notion")}
+                  className={`py-2.5 border-r border-[#2d3139] font-semibold flex items-center justify-center gap-1.5 ${
+                    activeEditorTab === "notion" ? "text-sky-400 bg-[#121417]" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Code className="w-3.5 h-3.5" />
+                  Notion
+                </button>
+                <button
+                  onClick={() => setActiveEditorTab("announcement")}
+                  className={`py-2.5 font-semibold flex items-center justify-center gap-1.5 ${
+                    activeEditorTab === "announcement" ? "text-purple-400 bg-[#121417]" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Alert
                 </button>
               </div>
 
+              <div className="p-4">
+                {activeEditorTab === "create" && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[9px] uppercase font-mono text-gray-400 mb-1">Document File Name</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. bio_interests.md"
+                        value={newFileName}
+                        onChange={(e) => setNewFileName(e.target.value)}
+                        className="w-full text-xs font-mono bg-[#0c0d0e] border border-[#2d3139] rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase font-mono text-gray-400 mb-1">Text-based Content</label>
+                      <textarea
+                        rows={3}
+                        placeholder="Type bio facts, answers, or custom notes..."
+                        value={newFileContent}
+                        onChange={(e) => setNewFileContent(e.target.value)}
+                        className="w-full text-xs font-sans bg-[#0c0d0e] border border-[#2d3139] rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleSaveFile(newFileName, newFileContent)}
+                      disabled={savingFile || !newFileName.trim() || !newFileContent.trim()}
+                      className="w-full text-xs font-mono font-semibold text-white bg-amber-500/15 border border-amber-500/25 rounded-lg py-2 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
+                    >
+                      {savingFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                      Sync Document to Brain
+                    </button>
+                  </div>
+                )}
+
+                {activeEditorTab === "notion" && (
+                  <form onSubmit={handleSaveNotion} className="space-y-3">
+                    <p className="text-[10.5px] text-[#a0aab4] font-sans leading-relaxed">
+                      Sync projects from Notion to the portfolio gallery directly.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[8px] uppercase font-mono text-gray-400 mb-0.5">Notion Token</label>
+                        <input 
+                          type="password"
+                          placeholder="secret_..."
+                          value={notionToken}
+                          onChange={(e) => setNotionToken(e.target.value)}
+                          className="w-full text-xs font-mono bg-[#0c0d0e] border border-[#2d3139] rounded px-2.5 py-1.5 text-white placeholder-gray-750 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[8px] uppercase font-mono text-gray-400 mb-0.5">Database UUID</label>
+                        <input 
+                          type="text"
+                          placeholder="e.g. 1a2b..."
+                          value={notionDatabaseId}
+                          onChange={(e) => setNotionDatabaseId(e.target.value)}
+                          className="w-full text-xs font-mono bg-[#0c0d0e] border border-[#2d3139] rounded px-2.5 py-1.5 text-white placeholder-gray-750 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={savingNotion}
+                      className="w-full text-xs font-mono font-semibold text-white bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/15 rounded-lg py-1.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      {savingNotion ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Link Notion Db"}
+                    </button>
+                  </form>
+                )}
+
+                {activeEditorTab === "announcement" && (
+                  <form onSubmit={handleSaveAnnouncement} className="space-y-3">
+                    <p className="text-[10.5px] text-[#a0aab4] font-sans">
+                      Post status flashes that render in the page alert bar.
+                    </p>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g., 'Currently taking select engagements for Q3 2026!'"
+                      value={announcementText}
+                      onChange={(e) => setAnnouncementText(e.target.value)}
+                      className="w-full text-xs font-sans bg-[#0c0d0e] border border-[#2d3139] rounded px-3 py-1.5 text-white placeholder-gray-650 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={postingAnnouncement || !announcementText.trim()}
+                      className="w-full text-xs font-mono font-semibold text-white bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 rounded-lg py-1.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      {postingAnnouncement ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Broadcast Alert"}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
 
-            {/* RIGHT COLUMN: AI Ingest, Google Docs, Google Calendar */}
-            <div className="space-y-6">
+          </div>
 
-              {/* 3. GEMINI DRAFT INGESTER */}
-              <div className="p-4 border border-[#2d3139] bg-[#1a1d23]/50 rounded-lg">
-                <h4 className="font-mono text-sm font-semibold text-white flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  3. Ingest via Gemini
-                </h4>
-                <p className="text-xs text-[#a0aab4] font-sans mb-3">
-                  Upload raw resume content, copy-pasted bio paragraphs, list of coordinates, or even select a `.txt/.md/.json` file.
-                  Gemini will analyze, structure, and stitch it into a beautiful case study!
-                </p>
+          {/* RIGHT COLUMN (GRID 7): Inspector & Real-time RAG Chat Sandbox */}
+          <div className="lg:col-span-7 bg-[#111317]/20 flex flex-col min-h-0 overflow-hidden h-full">
+            
+            {/* Top Workspace Splitting: View selected File vs Welcome Sandbox details */}
+            <div className="flex-1 min-h-0 p-5 flex flex-col space-y-4">
+              
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
+                
+                {/* Visualizer: Selected Knowledge File Content viewer */}
+                <div className="border border-[#2d3139] bg-[#0c0d0e]/60 rounded-xl overflow-hidden flex flex-col min-h-0">
+                  <div className="px-4 py-2.5 bg-[#171a20] border-b border-[#2d3139] flex items-center justify-between shrink-0 font-mono text-[10.5px] uppercase font-bold tracking-wider text-gray-300">
+                    <span className="flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      File Inspector
+                    </span>
+                    {selectedFile && <span className="text-[9px] text-[#8c9ba5] lowercase">{selectedFile.name}</span>}
+                  </div>
 
-                <div className="space-y-3">
-                  <textarea
-                    rows={3}
-                    placeholder="Paste unformatted project notes, list of technologies used, or client feedback here..."
-                    value={unstructuredText}
-                    onChange={(e) => setUnstructuredText(e.target.value)}
-                    className="w-full text-xs font-mono bg-[#111317] border border-[#2d3139] rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-amber-500"
-                  />
-                  
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <button
-                      onClick={() => handleTextImport(unstructuredText, "Manually Pasted Raw Data")}
-                      disabled={uploadingFile || !unstructuredText.trim()}
-                      className="flex-1 text-xs font-mono font-medium hover:text-white bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded py-2 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                    >
-                      {uploadingFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                      AI Parse Text
-                    </button>
-
-                    <label className="flex-1 text-xs font-mono font-medium text-gray-300 hover:text-white bg-[#1c1f26] hover:bg-[#252a35] border border-[#2d3139] rounded py-2 transition-all flex items-center justify-center gap-1 cursor-pointer">
-                      <Upload className="w-3.5 h-3.5" />
-                      Upload .MD/.TXT file
-                      <input 
-                        type="file"
-                        accept=".txt,.md,.json"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </label>
+                  <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] text-[#a9b2c3] leading-relaxed dark-scroll whitespace-pre-wrap">
+                    {fetchingFile ? (
+                      <div className="h-full flex items-center justify-center text-gray-500 gap-1.5">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Fetching content...
+                      </div>
+                    ) : selectedFile ? (
+                      <div>
+                        <div className="mb-3 pb-3 border-b border-[#2d3139]/40 flex items-center justify-between">
+                          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded uppercase tracking-wide">Ready for Retrieval</span>
+                          <span className="text-[9px] text-gray-500">{selectedFile.content.length} characters</span>
+                        </div>
+                        {selectedFile.content}
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 p-6 space-y-1">
+                        <Eye className="w-6 h-6 text-gray-600 mb-1" />
+                        <p className="font-semibold text-gray-400">No file selected</p>
+                        <p className="text-[10.5px] leading-relaxed max-w-[180px]">Select any file on the left to inspect its active knowledge context.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {parsedProject && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/15 rounded text-xs font-sans"
-                  >
-                    <div className="font-semibold text-emerald-400 flex items-center gap-1 mb-1">
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      Gemini structured: "{parsedProject?.title}"
-                    </div>
-                    <p className="text-gray-400 italic line-clamp-1">"{parsedProject?.description}"</p>
-                  </motion.div>
-                )}
-              </div>
+                {/* Digital Twin sandbox interactive testing ground (Gems style preview) */}
+                <div className="border border-[#2d3139] bg-[#0c0d0e]/60 rounded-xl overflow-hidden flex flex-col min-h-0">
+                  <div className="px-4 py-2.5 bg-[#171a20] border-b border-[#2d3139] flex items-center justify-between shrink-0 font-mono text-[10.5px] uppercase font-bold tracking-wider text-gray-300">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-spin" style={{ animationDuration: '3s' }} />
+                      Sandbox Test-Drive
+                    </span>
+                  </div>
 
-              {/* 4. GOOGLE DOCS CASE GENERATOR */}
-              <div className="p-4 border border-[#2d3139] bg-[#1a1d23]/50 rounded-lg">
-                <h4 className="font-mono text-sm font-semibold text-white flex items-center gap-2 mb-2">
-                  <FileText className="w-4 h-4 text-blue-400" />
-                  4. Google Docs Import pipeline
-                </h4>
-                <p className="text-xs text-[#a0aab4] font-sans mb-3">
-                  Fetch from your personal Google Docs library. Type in the Document ID to fetch its raw text and transform it into a gorgeous case study with Gemini.
-                </p>
-                <form onSubmit={handleImportGoogleDoc} className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Google Doc UUID / ID</label>
+                  {/* Sandbox Chat Flow */}
+                  <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#111317]/45 dark-scroll">
+                    {sandboxMessages.map((m) => (
+                      <div 
+                        key={m.id}
+                        className={`flex flex-col max-w-[90%] ${
+                          m.sender === "user" ? "ml-auto items-end" : "mr-auto items-start"
+                        }`}
+                      >
+                        <div className={`px-3 py-2 text-[11.5px] font-sans leading-relaxed rounded-xl shadow-sm ${
+                          m.sender === "user"
+                            ? "bg-amber-500 text-black font-semibold rounded-tr-none"
+                            : "bg-[#1d212c]/80 border border-[#2d3139] text-[#e3e6eb] rounded-tl-none"
+                        }`}>
+                          {m.text}
+                        </div>
+                      </div>
+                    ))}
+                    {sandboxTyping && (
+                      <div className="flex items-center gap-1.5 bg-[#1d212c]/80 border border-[#2d3139] rounded-xl rounded-tl-none px-3 py-2 max-w-[50px] ml-1">
+                        <span className="w-1.5 h-1.5 bg-gray-450 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 bg-gray-450 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 bg-gray-450 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sandbox chat inputs */}
+                  <form onSubmit={handleSandboxSubmit} className="p-2 border-t border-[#2d3139] bg-[#161920] flex items-center gap-1.5 shrink-0">
                     <input 
                       type="text"
-                      placeholder="e.g. 1uK98u9p8V_K2Rqp-q2J_x..."
-                      value={googleDocId}
-                      onChange={(e) => setGoogleDocId(e.target.value)}
-                      className="w-full text-xs font-mono bg-[#111317] border border-[#2d3139] rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
+                      placeholder="Ask twin and verify RAG answer..."
+                      value={sandboxQuery}
+                      onChange={(e) => setSandboxQuery(e.target.value)}
+                      className="flex-1 text-xs px-3 py-2 rounded-lg bg-[#0c0d0e] border border-[#2d3139] text-white focus:outline-none focus:border-amber-500 placeholder-gray-550"
                     />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={fetchingGoogleDoc || !googleDocId}
-                    className="w-full text-xs font-mono font-medium hover:text-white bg-[#1c1f26] hover:bg-[#252a35] text-[#8ab4f8] border border-[#2d3139] rounded py-2 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    {fetchingGoogleDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                    Ingest Doc Draft with Gemini
-                  </button>
-                </form>
-              </div>
-
-              {/* 5. GOOGLE CALENDAR TRACKER */}
-              <div className="p-4 border border-[#2d3139] bg-[#1a1d23]/50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-mono text-sm font-semibold text-white flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-emerald-400" />
-                    5. Real-time Office Schedule
-                  </h4>
-                  <button
-                    onClick={handleFetchCalendar}
-                    disabled={fetchingCalendar}
-                    className="p-1 px-2 text-[10px] uppercase font-mono text-sky-400 hover:text-sky-300 border border-[#2d3139] bg-[#15171c] hover:bg-[#1f232a] rounded flex items-center gap-1 transition-all"
-                  >
-                    {fetchingCalendar ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Query Google Cal"}
-                  </button>
+                    <button 
+                      type="submit"
+                      disabled={!sandboxQuery.trim() || sandboxTyping}
+                      className="p-2 bg-amber-500 hover:bg-amber-400 text-black rounded-lg active:scale-95 disabled:opacity-30 transition-all shrink-0 cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  </form>
                 </div>
-                <p className="text-xs text-[#a0aab4] font-sans mb-3 font-normal leading-relaxed">
-                  Query Budi's schedule blocks directly from Google Calendar to keep clients informed on live availability slot metrics.
-                </p>
 
-                {calendarEvents.length > 0 ? (
-                  <div className="space-y-2 max-h-[140px] overflow-y-auto">
-                    {calendarEvents.map((evt: any, i: number) => {
-                      const eventTime = evt.start?.dateTime ? new Date(evt.start.dateTime) : (evt.start?.date ? new Date(evt.start.date) : null);
-                      return (
-                        <div key={i} className="bg-[#121417] p-2 border border-[#2d3139]/40 rounded font-sans text-[11px] flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <span className="font-medium text-white block truncate max-w-[200px]">{evt.summary || "Secured Appointment Block"}</span>
-                            <span className="text-[10px] text-[#8c9ba5]">
-                              {evt.status === "confirmed" ? "● Active Scheduled Event" : "○ Dynamic Status"}
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono text-gray-500 shrink-0">
-                            {eventTime ? eventTime.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "All-day Focus Block"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-[11px] border border-dashed border-[#2d3139] p-3 text-[#798590] text-center font-mono">
-                    Google Calendar data not fetched yet. Click "Query Google Cal" to retrieve live schedule data.
-                  </div>
-                )}
               </div>
 
             </div>
 
           </div>
-        )}
+
+        </div>
+
       </motion.div>
     </div>
   );
