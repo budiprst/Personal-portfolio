@@ -53,6 +53,111 @@ export default function App() {
   // Simple scroll parallax state
   const [scrollY, setScrollY] = useState(0);
 
+  // Interactive AI-DX Maturity Simulator state
+  const [dxCompanyStage, setDxCompanyStage] = useState<'legacy' | 'growing' | 'enterprise'>('growing');
+  const [dxFocus, setDxFocus] = useState<'automation' | 'rag' | 'agents'>('agents');
+
+  // Derived metrics for AI-DX Simulator
+  const getDxMetrics = () => {
+    let productivity = 0;
+    let timeSaved = "";
+    let roadmap = [] as string[];
+    let difficulty = "";
+
+    if (dxCompanyStage === 'legacy') {
+      if (dxFocus === 'automation') {
+        productivity = 140;
+        timeSaved = "12h/wk per user";
+        roadmap = [
+          "Convert complex spreadsheets to automated databases",
+          "Deploy webhook-triggered auto-email responders",
+          "Automate high-frequency routine manual tasks"
+        ];
+        difficulty = "2-Week Sprint — Low Complexity";
+      } else if (dxFocus === 'rag') {
+        productivity = 190;
+        timeSaved = "18h/wk per team";
+        roadmap = [
+          "Index scattered corporate PDFs, notes, & templates",
+          "Configure secure vector matching search database",
+          "Build intuitive chat search interface for business docs"
+        ];
+        difficulty = "3-Week Phase — Medium Complexity";
+      } else {
+        productivity = 280;
+        timeSaved = "25h/wk per team";
+        roadmap = [
+          "Identify core operations friction clusters",
+          "Deploy custom server-side automated middleware",
+          "Launch autonomous Gemini agents for process scaling"
+        ];
+        difficulty = "4-Week Cycle — Strategic Automation";
+      }
+    } else if (dxCompanyStage === 'growing') {
+      if (dxFocus === 'automation') {
+        productivity = 180;
+        timeSaved = "16h/wk per user";
+        roadmap = [
+          "Audit API integrations & software endpoints",
+          "Streamline user/metadata synchronization models",
+          "Configure live real-time webhook event handlers"
+        ];
+        difficulty = "5-Day Deployment — Highly Modular";
+      } else if (dxFocus === 'rag') {
+        productivity = 245;
+        timeSaved = "28h/wk per team";
+        roadmap = [
+          "Sync live Slack, Drive & Notion graphs securely",
+          "Setup memory buffers & smart cache to cut token costs",
+          "Insert cognitive semantic search tools on the dashboard"
+        ];
+        difficulty = "2-Week Sprint — High-Velocity RAG";
+      } else {
+        productivity = 420;
+        timeSaved = "35h/wk per team";
+        roadmap = [
+          "Architect robust, self-healing multi-agent states",
+          "Deploy human-in-the-loop task audit panels",
+          "Create autonomous backend event schedulers"
+        ];
+        difficulty = "4-Week Shift — Comprehensive AI";
+      }
+    } else { // enterprise
+      if (dxFocus === 'automation') {
+        productivity = 220;
+        timeSaved = "40h/wk per dept";
+        roadmap = [
+          "Refactor legacy databases into secure, clean APIs",
+          "Enforce modern role-based auth & access scopes",
+          "Run modular microservices via containerized backends"
+        ];
+        difficulty = "3-Week Phase — Robust Architecture";
+      } else if (dxFocus === 'rag') {
+        productivity = 320;
+        timeSaved = "120h/wk per dept";
+        roadmap = [
+          "Federate private cloud data connections securely",
+          "Implement fine-grained enterprise access permissions",
+          "Deploy high-fidelity text retrieval with full PII privacy"
+        ];
+        difficulty = "4-Week Cycle — Corporate Alignment";
+      } else {
+        productivity = 580;
+        timeSaved = "240h/wk per dept";
+        roadmap = [
+          "Build distributed enterprise multi-agent workflows",
+          "Introduce automatic recovery and retry safety nets",
+          "Establish high-reliability LLM gateways with SLAs"
+        ];
+        difficulty = "6-8 Weeks — Custom Enterprise DX";
+      }
+    }
+
+    return { productivity, timeSaved, roadmap, difficulty };
+  };
+
+  const dxMetrics = getDxMetrics();
+
   // Fetch the master dynamic feed on mount
   const refreshPortfolioData = async () => {
     setIsSyncing(true);
@@ -246,6 +351,23 @@ export default function App() {
             With 13+ years of dual-domain expertise bridging business leadership and core IT infrastructure, I lead high-impact AI-DX initiatives. As a Computer Science graduate, former business owner, and current MBA candidate, I engineer dynamic full-stack systems and data strategies that capitalize on complex technological developments.
           </p>
 
+          {/* Mobile Profile Block: Only visible below lg */}
+          <div className="lg:hidden flex flex-col sm:flex-row items-start sm:items-center gap-4 p-5 bg-white border border-gray-150 rounded-2xl mb-8 w-full max-w-md shadow-sm">
+            <img 
+              src="/src/assets/images/budi_portrait.png" 
+              alt="Budi Prasetyo - AI-DX Transformation Specialist" 
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 shrink-0"
+              referrerPolicy="no-referrer"
+            />
+            <div>
+              <h4 className="font-sans font-bold text-neutral-900 text-sm">Budi Prasetyo</h4>
+              <p className="font-mono text-[9px] text-amber-600 uppercase tracking-wider font-bold">AI-DX Partnership Lead</p>
+              <p className="font-sans text-xs text-gray-550 mt-1 leading-relaxed">
+                Computer Science graduate, former business owner, and current MBA candidate with 13+ years of enterprise experience.
+              </p>
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-3">
             <a 
               href="#case-studies-section" 
@@ -265,7 +387,7 @@ export default function App() {
 
         {/* Elegant Parallax Dual-Card Stack representing Budi's Premium AI-DX Profile & Dual Competence */}
         <div 
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-[420px] h-[500px] hidden lg:block pointer-events-none select-none"
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-[420px] h-[525px] hidden lg:block pointer-events-none select-none"
           style={{ transform: `translateY(${-50 + scrollY * 0.05}px)` }}
         >
           {/* Base Card 1: Executive portrait mockup */}
@@ -273,26 +395,26 @@ export default function App() {
             className="absolute inset-0 bg-white border border-neutral-200/80 shadow-2xl rounded-2xl overflow-hidden flex flex-col transition-all duration-75"
             style={{ transform: `rotate(1deg) translateY(${scrollY * 0.02}px)` }}
           >
-            <div className="relative h-[320px] bg-neutral-100 overflow-hidden">
+            <div className="relative h-[330px] bg-neutral-100 overflow-hidden">
               <img 
-                src="/src/assets/images/budi_profile_portrait_1781328990996.jpg" 
+                src="/src/assets/images/budi_portrait.png" 
                 alt="Budi Prasetyo - AI-DX Transformation Specialist" 
-                className="w-full h-full object-cover grayscale-[15%] hover:grayscale-0 transition-all duration-750"
+                className="w-full h-full object-cover grayscale-[8%] hover:grayscale-0 transition-all duration-700"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute top-4 left-4 flex gap-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 bg-neutral-900/90 backdrop-blur-md border border-neutral-800 text-white font-mono text-[9px] uppercase font-bold px-2 py-1 rounded">
+                <span className="inline-flex items-center gap-1 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 text-white font-mono text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg">
                   <GraduationCap size={10} className="text-amber-400" />
                   CS Grad & MBA
                 </span>
-                <span className="inline-flex items-center gap-1 bg-amber-500/95 text-white font-mono text-[9px] uppercase font-bold px-2 py-1 rounded">
+                <span className="inline-flex items-center gap-1 bg-amber-500/95 text-white font-mono text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg">
                   <Briefcase size={9} />
                   13+ Yrs Exp
                 </span>
               </div>
               <div className="absolute bottom-4 right-4 animate-bounce">
                 <span className="bg-emerald-500 text-white font-mono text-[8px] uppercase tracking-wider px-2 py-1 rounded font-extrabold flex items-center gap-1 shadow-md">
-                  <span className="w-1 to-1.5 h-1.5 rounded-full bg-white bg-opacity-95" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                   Expert Active
                 </span>
               </div>
@@ -301,64 +423,117 @@ export default function App() {
             <div className="p-5 flex-1 flex flex-col justify-between">
               <div>
                 <h4 className="font-sans font-extrabold text-[#111317] text-lg tracking-tight">Budi Prasetyo</h4>
-                <p className="font-mono text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">AI-DX Transformation Partner</p>
-                <p className="font-sans text-xs text-gray-550 leading-relaxed mt-2">
+                <p className="font-mono text-[10px] text-amber-600 uppercase tracking-widest mt-0.5 font-bold">AI-DX Transformation Partner</p>
+                <p className="font-sans text-xs text-gray-550 leading-relaxed mt-2.5">
                   Harmonizing advanced Artificial Intelligence workflows with scalable enterprise solutions to accelerate organizational maturity.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Foreground Card 2: Floating Strategy Telemetry & Executive Scorecard */}
+          {/* Foreground Card 2 (INTERACTIVE): Floating Strategy Simulator & Executive Scorecard */}
           <div 
-            className="absolute left-[-45px] bottom-[-25px] w-[270px] bg-[#121417]/95 backdrop-blur-md border border-[#2d3139] shadow-2xl rounded-2xl p-4 transition-all duration-75 text-white"
-            style={{ transform: `rotate(-3deg) translateY(${scrollY * -0.08}px)` }}
+            className="absolute left-[-55px] bottom-[-45px] w-[310px] bg-[#121417]/95 backdrop-blur-md border border-[#2d3139] shadow-2xl rounded-2xl p-5 transition-all duration-75 text-white pointer-events-auto"
+            style={{ transform: `rotate(-2deg) translateY(${scrollY * -0.06}px)` }}
           >
             <div className="flex items-center justify-between border-b border-[#2d3139] pb-2.5 mb-3">
               <span className="font-mono text-[9px] uppercase text-[#a0aab4] font-bold tracking-widest flex items-center gap-1">
                 <Cpu size={11} className="text-amber-400" />
-                DX Execution Mapping
+                AI-DX Strategy Simulator
               </span>
               <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
             </div>
 
-            <div className="space-y-2.5 font-sans">
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-medium text-gray-300">
-                  <span>Strategy & Venture Leadership</span>
-                  <span className="font-mono font-bold text-emerald-400">98% Match</span>
-                </div>
-                <div className="h-1.5 bg-[#1e2229] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[98%]" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-medium text-gray-300">
-                  <span>Computer Science Core IT</span>
-                  <span className="font-mono font-bold text-sky-400">100% Core</span>
-                </div>
-                <div className="h-1.5 bg-[#1e2229] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-sky-500 to-sky-300 w-full" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-medium text-gray-300">
-                  <span>AI Workflows & Integration</span>
-                  <span className="font-mono font-bold text-amber-400">Deployed</span>
-                </div>
-                <div className="h-1.5 bg-[#1e2229] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-amber-500 to-orange-400 w-[95%]" />
-                </div>
+            {/* Stage Selector */}
+            <div className="mb-3.5">
+              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">Business Scale</span>
+              <div className="grid grid-cols-3 gap-1 bg-[#1a1d23] p-1 rounded-lg border border-[#2d3139]">
+                <button
+                  onClick={() => setDxCompanyStage('legacy')}
+                  className={`text-[9px] font-sans font-medium py-1 rounded transition-colors cursor-pointer ${
+                    dxCompanyStage === 'legacy' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Legacy
+                </button>
+                <button
+                  onClick={() => setDxCompanyStage('growing')}
+                  className={`text-[9px] font-sans font-medium py-1 rounded transition-colors cursor-pointer ${
+                    dxCompanyStage === 'growing' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Growing
+                </button>
+                <button
+                  onClick={() => setDxCompanyStage('enterprise')}
+                  className={`text-[9px] font-sans font-medium py-1 rounded transition-colors cursor-pointer ${
+                    dxCompanyStage === 'enterprise' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Enterprise
+                </button>
               </div>
             </div>
 
-            <div className="mt-4 p-2 px-3 bg-[#1a1d23] border border-[#2d3139] rounded-lg">
-              <div className="flex justify-between items-center text-[9px] font-mono text-gray-400">
-                <span>Notion Pipeline Status:</span>
-                <span className="text-emerald-400">Connected</span>
+            {/* Focus Target */}
+            <div className="mb-3.5">
+              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">Transformation Target</span>
+              <div className="grid grid-cols-3 gap-1 bg-[#1a1d23] p-1 rounded-lg border border-[#2d3139]">
+                <button
+                  onClick={() => setDxFocus('automation')}
+                  className={`text-[9px] font-sans font-semibold py-1 rounded transition-colors cursor-pointer ${
+                    dxFocus === 'automation' ? 'bg-[#2a2f38] text-emerald-400 font-bold' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Auto-SaaS
+                </button>
+                <button
+                  onClick={() => setDxFocus('rag')}
+                  className={`text-[9px] font-sans font-semibold py-1 rounded transition-colors cursor-pointer ${
+                    dxFocus === 'rag' ? 'bg-[#2a2f38] text-sky-400 font-bold' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Smart RAG
+                </button>
+                <button
+                  onClick={() => setDxFocus('agents')}
+                  className={`text-[9px] font-sans font-semibold py-1 rounded transition-colors cursor-pointer ${
+                    dxFocus === 'agents' ? 'bg-[#2a2f38] text-amber-500 font-bold' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Agents
+                </button>
               </div>
+            </div>
+
+            {/* Simulator Output Indicators */}
+            <div className="space-y-2.5 bg-[#171a1f] p-3 rounded-xl border border-[#242932] font-sans">
+              <div className="flex justify-between items-center pb-2 border-b border-[#242932]/60">
+                <span className="text-[10px] text-gray-450">Est. Efficiency Boost</span>
+                <span className="text-sm font-black text-emerald-400 font-mono">+{dxMetrics.productivity}%</span>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-[#242932]/60">
+                <span className="text-[10px] text-gray-450">Saved Time Velocity</span>
+                <span className="text-[10px] font-bold text-sky-400 font-mono">{dxMetrics.timeSaved}</span>
+              </div>
+              
+              <div className="pt-1">
+                <span className="block text-[8px] font-mono text-gray-450 uppercase tracking-widest mb-1.5">Direct Action Roadmap:</span>
+                <ul className="space-y-1.5">
+                  {dxMetrics.roadmap.map((step, sIdx) => (
+                    <li key={sIdx} className="text-[9px] text-gray-300 leading-normal flex items-start gap-1">
+                      <span className="text-amber-500 shrink-0 font-bold">✓</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Small status overlay */}
+            <div className="mt-3.5 flex items-center justify-between text-[8px] font-mono text-gray-500">
+              <span className="text-gray-400">{dxMetrics.difficulty}</span>
+              <span className="text-[7.5px] text-amber-500 font-bold uppercase tracking-wider">13+ Yrs Dual Scope</span>
             </div>
           </div>
         </div>
