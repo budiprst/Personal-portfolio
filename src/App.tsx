@@ -30,8 +30,12 @@ import ProjectDetailsModal from "./components/ProjectDetailsModal";
 import AIChatBubble from "./components/AIChatBubble";
 import AdminPanel from "./components/AdminPanel";
 import budiPortrait from "./assets/images/budi_portrait.png";
+import { LANGUAGES, TRANSLATIONS, CATEGORY_TRANSLATIONS, LanguageCode } from "./translations";
 
 export default function App() {
+  const [activeLang, setActiveLang] = useState<LanguageCode>("en");
+  const t = TRANSLATIONS[activeLang] || TRANSLATIONS.en;
+
   const [projects, setProjects] = useState<Project[]>(DEFAULT_PROJECTS);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [search, setSearch] = useState("");
@@ -68,91 +72,42 @@ export default function App() {
     if (dxCompanyStage === 'legacy') {
       if (dxFocus === 'automation') {
         productivity = 140;
-        timeSaved = "12h/wk per user";
-        roadmap = [
-          "Convert complex spreadsheets to automated databases",
-          "Deploy webhook-triggered auto-email responders",
-          "Automate high-frequency routine manual tasks"
-        ];
-        difficulty = "2-Week Sprint — Low Complexity";
+        timeSaved = activeLang === 'ja' ? "週12時間 / ユーザー" : activeLang === 'fr' ? "12h/sem par utilisateur" : activeLang === 'es' ? "12h/sem por usuario" : activeLang === 'de' ? "12 Std./Woche pro Nutzer" : activeLang === 'id' ? "12 jam/minggu per user" : activeLang === 'sw' ? "Saa 12/wiki kila mtumiaji" : activeLang === 'yo' ? "Wakati 12/wiki olumulo" : activeLang === 'zu' ? "Amahora ayi-12/wiki kumsebenzisi" : "12h/wk per user";
       } else if (dxFocus === 'rag') {
         productivity = 190;
-        timeSaved = "18h/wk per team";
-        roadmap = [
-          "Index scattered corporate PDFs, notes, & templates",
-          "Configure secure vector matching search database",
-          "Build intuitive chat search interface for business docs"
-        ];
-        difficulty = "3-Week Phase — Medium Complexity";
+        timeSaved = activeLang === 'ja' ? "週18時間 / チーム" : activeLang === 'fr' ? "18h/sem par équipe" : activeLang === 'es' ? "18h/sem por equipo" : activeLang === 'de' ? "18 Std./Woche pro Team" : activeLang === 'id' ? "18 jam/minggu per tim" : activeLang === 'sw' ? "Saa 18/wiki kwa timu" : activeLang === 'yo' ? "Wakati 18/wiki f'ẹgbẹ" : activeLang === 'zu' ? "Amahora ayi-18/wiki kuthimba" : "18h/wk per team";
       } else {
         productivity = 280;
-        timeSaved = "25h/wk per team";
-        roadmap = [
-          "Identify core operations friction clusters",
-          "Deploy custom server-side automated middleware",
-          "Launch autonomous Gemini agents for process scaling"
-        ];
-        difficulty = "4-Week Cycle — Strategic Automation";
+        timeSaved = activeLang === 'ja' ? "週25時間 / チーム" : activeLang === 'fr' ? "25h/sem par équipe" : activeLang === 'es' ? "25h/sem por equipo" : activeLang === 'de' ? "25 Std./Woche pro Team" : activeLang === 'id' ? "25 jam/minggu per tim" : activeLang === 'sw' ? "Saa 25/wiki kwa timu" : activeLang === 'yo' ? "Wakati 25/wiki f'ẹgbẹ" : activeLang === 'zu' ? "Amahora ayi-25/wiki kuthimba" : "25h/wk per team";
       }
     } else if (dxCompanyStage === 'growing') {
       if (dxFocus === 'automation') {
         productivity = 180;
-        timeSaved = "16h/wk per user";
-        roadmap = [
-          "Audit API integrations & software endpoints",
-          "Streamline user/metadata synchronization models",
-          "Configure live real-time webhook event handlers"
-        ];
-        difficulty = "5-Day Deployment — Highly Modular";
+        timeSaved = activeLang === 'ja' ? "週16時間 / ユーザー" : activeLang === 'fr' ? "16h/sem par utilisateur" : activeLang === 'es' ? "16h/sem por usuario" : activeLang === 'de' ? "16 Std./Woche pro Nutzer" : activeLang === 'id' ? "16 jam/minggu per user" : activeLang === 'sw' ? "Saa 16/wiki kila mtumiaji" : activeLang === 'yo' ? "Wakati 16/wiki olumulo" : activeLang === 'zu' ? "Amahora ayi-16/wiki kumsebenzisi" : "16h/wk per user";
       } else if (dxFocus === 'rag') {
         productivity = 245;
-        timeSaved = "28h/wk per team";
-        roadmap = [
-          "Sync live Slack, Drive & Notion graphs securely",
-          "Setup memory buffers & smart cache to cut token costs",
-          "Insert cognitive semantic search tools on the dashboard"
-        ];
-        difficulty = "2-Week Sprint — High-Velocity RAG";
+        timeSaved = activeLang === 'ja' ? "週28時間 / チーム" : activeLang === 'fr' ? "28h/sem par équipe" : activeLang === 'es' ? "28h/sem por equipo" : activeLang === 'de' ? "28 Std./Woche pro Team" : activeLang === 'id' ? "28 jam/minggu per tim" : activeLang === 'sw' ? "Saa 28/wiki kwa timu" : activeLang === 'yo' ? "Wakati 28/wiki f'ẹgbẹ" : activeLang === 'zu' ? "Amahora ayi-28/wiki kuthimba" : "28h/wk per team";
       } else {
         productivity = 420;
-        timeSaved = "35h/wk per team";
-        roadmap = [
-          "Architect robust, self-healing multi-agent states",
-          "Deploy human-in-the-loop task audit panels",
-          "Create autonomous backend event schedulers"
-        ];
-        difficulty = "4-Week Shift — Comprehensive AI";
+        timeSaved = activeLang === 'ja' ? "週35時間 / チーム" : activeLang === 'fr' ? "35h/sem par équipe" : activeLang === 'es' ? "35h/sem por equipo" : activeLang === 'de' ? "35 Std./Woche pro Team" : activeLang === 'id' ? "35 jam/minggu per tim" : activeLang === 'sw' ? "Saa 35/wiki kwa timu" : activeLang === 'yo' ? "Wakati 35/wiki f'ẹgbẹ" : activeLang === 'zu' ? "Amahora ayi-35/wiki kuthimba" : "35h/wk per team";
       }
     } else { // enterprise
       if (dxFocus === 'automation') {
         productivity = 220;
-        timeSaved = "40h/wk per dept";
-        roadmap = [
-          "Refactor legacy databases into secure, clean APIs",
-          "Enforce modern role-based auth & access scopes",
-          "Run modular microservices via containerized backends"
-        ];
-        difficulty = "3-Week Phase — Robust Architecture";
+        timeSaved = activeLang === 'ja' ? "週40時間 / 部門" : activeLang === 'fr' ? "40h/sem par de'pt" : activeLang === 'es' ? "40h/sem por depto" : activeLang === 'de' ? "40 Std./Woche pro Abt." : activeLang === 'id' ? "40 jam/minggu per dept" : activeLang === 'sw' ? "Saa 40/wiki kwa kila idara" : activeLang === 'yo' ? "Wakati 40/wiki fun ẹka" : activeLang === 'zu' ? "Amahora ayi-40/wiki kumnyango" : "40h/wk per dept";
       } else if (dxFocus === 'rag') {
         productivity = 320;
-        timeSaved = "120h/wk per dept";
-        roadmap = [
-          "Federate private cloud data connections securely",
-          "Implement fine-grained enterprise access permissions",
-          "Deploy high-fidelity text retrieval with full PII privacy"
-        ];
-        difficulty = "4-Week Cycle — Corporate Alignment";
+        timeSaved = activeLang === 'ja' ? "週120時間 / 部門" : activeLang === 'fr' ? "120h/sem par de'pt" : activeLang === 'es' ? "120h/sem por depto" : activeLang === 'de' ? "120 Std./Woche pro Abt." : activeLang === 'id' ? "120 jam/minggu per dept" : activeLang === 'sw' ? "Saa 120/wiki kwa idara" : activeLang === 'yo' ? "Wakati 120/wiki fun ẹka" : activeLang === 'zu' ? "Amahora ayi-120/wiki kumnyango" : "120h/wk per dept";
       } else {
         productivity = 580;
-        timeSaved = "240h/wk per dept";
-        roadmap = [
-          "Build distributed enterprise multi-agent workflows",
-          "Introduce automatic recovery and retry safety nets",
-          "Establish high-reliability LLM gateways with SLAs"
-        ];
-        difficulty = "6-8 Weeks — Custom Enterprise DX";
+        timeSaved = activeLang === 'ja' ? "週240時間 / 部門" : activeLang === 'fr' ? "240h/sem par de'pt" : activeLang === 'es' ? "240h/sem por depto" : activeLang === 'de' ? "240 Std./Woche pro Abt." : activeLang === 'id' ? "240 jam/minggu per dept" : activeLang === 'sw' ? "Saa 240/wiki kwa idara" : activeLang === 'yo' ? "Wakati 240/wiki fun ẹka" : activeLang === 'zu' ? "Amahora ayi-240/wiki kumnyango" : "240h/wk per dept";
       }
     }
+
+    roadmap = t.simRoadmaps[dxCompanyStage][dxFocus];
+
+    const mapKey = `${dxCompanyStage}_${dxFocus}` as keyof typeof t.simDifficultyMap;
+    difficulty = t.simDifficultyMap[mapKey] || t.simDifficultyMap.growing_agents;
 
     return { productivity, timeSaved, roadmap, difficulty };
   };
@@ -316,18 +271,36 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#f3f3f3] hover:bg-neutral-200 rounded-full text-[11px] font-medium font-mono text-gray-700 transition-colors cursor-pointer">
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#f3f3f3] hover:bg-neutral-200 rounded-full text-[11px] font-medium font-mono text-gray-700 transition-colors cursor-pointer">
               <span className={`w-1.5 h-1.5 rounded-full ${isUsingNotion ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
-              <span>{isUsingNotion ? "Notion Live Connected" : "Local Portfolio Cache"}</span>
+              <span>{isUsingNotion ? t.notionConnected : t.localCache}</span>
+            </div>
+
+            {/* Elegant Language Selector */}
+            <div className="relative flex items-center">
+              <Globe size={13} className="text-gray-500 absolute left-3 shrink-0 pointer-events-none" />
+              <select
+                id="language-selector"
+                value={activeLang}
+                onChange={(e) => setActiveLang(e.target.value as LanguageCode)}
+                className="pl-8 pr-7 py-2 bg-[#f3f3f3] hover:bg-neutral-200 text-gray-700 font-sans text-xs font-semibold rounded-xl border border-transparent hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-neutral-400 hover:text-neutral-900 transition-all cursor-pointer appearance-none shrink-0"
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.label}
+                  </option>
+                ))}
+              </select>
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[8px]">▼</span>
             </div>
 
             <button
               id="header-btn-toggle-owner-portal"
               onClick={() => setIsAdminOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 border border-amber-500/30 bg-amber-500/10 text-amber-800 hover:bg-amber-500/15 tracking-tight font-sans text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 border border-amber-500/30 bg-amber-500/10 text-amber-800 hover:bg-amber-500/15 tracking-tight font-sans text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
             >
               <Sparkles size={13} className="text-amber-600 shrink-0 animate-pulse" />
-              <span>Twin Knowledge Hub</span>
+              <span>{t.twinHub}</span>
             </button>
           </div>
         </div>
@@ -341,15 +314,15 @@ export default function App() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-lg text-xs font-semibold text-gray-700 border border-neutral-250 mb-6 font-sans">
             <Sparkles size={13} className="text-amber-500" />
-            <span>AI-DX Transformation Specialist</span>
+            <span>{t.heroBadge}</span>
           </div>
 
           <h1 className="font-sans text-4xl sm:text-6xl font-extrabold text-neutral-900 tracking-tight leading-[1.08] mb-6">
-            Driving <span className="underline decoration-neutral-300 decoration-wavy underline-offset-8">business value</span> through artificial intelligence & digital transformation.
+            {t.heroTitleLeading} <span className="underline decoration-neutral-300 decoration-wavy underline-offset-8">{t.heroTitleUnderline}</span> {t.heroTitleTrailing}
           </h1>
 
           <p className="font-sans text-base sm:text-lg text-gray-550 leading-relaxed max-w-2xl font-normal mb-8">
-            With 13+ years of dual-domain expertise bridging business leadership and core IT infrastructure, I lead high-impact AI-DX initiatives. As a Computer Science graduate, former business owner, and current MBA candidate, I engineer dynamic full-stack systems and data strategies that capitalize on complex technological developments.
+            {t.heroDesc}
           </p>
 
           {/* Mobile Profile Block: Only visible below lg */}
@@ -368,7 +341,7 @@ export default function App() {
               <h4 className="font-sans font-bold text-neutral-900 text-sm">Budi Prasetyo</h4>
               <p className="font-mono text-[9px] text-amber-600 uppercase tracking-wider font-bold">AI-DX Partnership Lead</p>
               <p className="font-sans text-xs text-gray-550 mt-1 leading-relaxed">
-                Computer Science graduate, former business owner, and current MBA candidate with 13+ years of enterprise experience.
+                {t.heroDesc}
               </p>
             </div>
           </div>
@@ -378,14 +351,14 @@ export default function App() {
               href="#case-studies-section" 
               className="px-6 py-3.5 bg-neutral-900 text-white font-sans text-sm font-semibold rounded-xl hover:bg-neutral-800 transition-colors flex items-center gap-2 group cursor-pointer"
             >
-              <span>Explore Visual Case Studies</span>
+              <span>{t.heroCtaPrimary}</span>
               <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
             </a>
             <a 
               href="#contact-section" 
               className="px-6 py-3.5 bg-white border border-gray-200 text-neutral-900 font-sans text-sm font-semibold rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer"
             >
-              <span>Initialize Consultation</span>
+              <span>{t.heroCtaSecondary}</span>
             </a>
           </div>
         </div>
@@ -414,17 +387,17 @@ export default function App() {
               <div className="absolute top-4 left-4 flex gap-1.5 flex-wrap">
                 <span className="inline-flex items-center gap-1 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 text-white font-mono text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg">
                   <GraduationCap size={10} className="text-amber-400" />
-                  CS Grad & MBA
+                  {t.bioCardTag}
                 </span>
                 <span className="inline-flex items-center gap-1 bg-amber-500/95 text-white font-mono text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg">
                   <Briefcase size={9} />
-                  13+ Yrs Exp
+                  {t.bioCardExp}
                 </span>
               </div>
               <div className="absolute bottom-4 right-4 animate-bounce">
                 <span className="bg-emerald-500 text-white font-mono text-[8px] uppercase tracking-wider px-2 py-1 rounded font-extrabold flex items-center gap-1 shadow-md">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  Expert Active
+                  {t.bioCardStatus}
                 </span>
               </div>
             </div>
@@ -434,7 +407,7 @@ export default function App() {
                 <h4 className="font-sans font-extrabold text-[#111317] text-lg tracking-tight">Budi Prasetyo</h4>
                 <p className="font-mono text-[10px] text-amber-600 uppercase tracking-widest mt-0.5 font-bold">AI-DX Transformation Partner</p>
                 <p className="font-sans text-xs text-gray-550 leading-relaxed mt-2.5">
-                  Harmonizing advanced Artificial Intelligence workflows with scalable enterprise solutions to accelerate organizational maturity.
+                  {t.bioCardDesc}
                 </p>
               </div>
             </div>
@@ -448,14 +421,14 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-[#2d3139] pb-2.5 mb-3">
               <span className="font-mono text-[9px] uppercase text-[#a0aab4] font-bold tracking-widest flex items-center gap-1">
                 <Cpu size={11} className="text-amber-400" />
-                AI-DX Strategy Simulator
+                {t.simTitle}
               </span>
               <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
             </div>
 
             {/* Stage Selector */}
             <div className="mb-3.5">
-              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">Business Scale</span>
+              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">{t.simScaleLabel}</span>
               <div className="grid grid-cols-3 gap-1 bg-[#1a1d23] p-1 rounded-lg border border-[#2d3139]">
                 <button
                   onClick={() => setDxCompanyStage('legacy')}
@@ -463,7 +436,7 @@ export default function App() {
                     dxCompanyStage === 'legacy' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Legacy
+                  {t.simLegacy}
                 </button>
                 <button
                   onClick={() => setDxCompanyStage('growing')}
@@ -471,7 +444,7 @@ export default function App() {
                     dxCompanyStage === 'growing' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Growing
+                  {t.simGrowing}
                 </button>
                 <button
                   onClick={() => setDxCompanyStage('enterprise')}
@@ -479,14 +452,14 @@ export default function App() {
                     dxCompanyStage === 'enterprise' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Enterprise
+                  {t.simEnterprise}
                 </button>
               </div>
             </div>
 
             {/* Focus Target */}
             <div className="mb-3.5">
-              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">Transformation Target</span>
+              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">{t.simTargetLabel}</span>
               <div className="grid grid-cols-3 gap-1 bg-[#1a1d23] p-1 rounded-lg border border-[#2d3139]">
                 <button
                   onClick={() => setDxFocus('automation')}
@@ -494,7 +467,7 @@ export default function App() {
                     dxFocus === 'automation' ? 'bg-[#2a2f38] text-emerald-400 font-bold' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Auto-SaaS
+                  {t.simAutoSaaS}
                 </button>
                 <button
                   onClick={() => setDxFocus('rag')}
@@ -502,7 +475,7 @@ export default function App() {
                     dxFocus === 'rag' ? 'bg-[#2a2f38] text-sky-400 font-bold' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Smart RAG
+                  {t.simSmartRAG}
                 </button>
                 <button
                   onClick={() => setDxFocus('agents')}
@@ -510,7 +483,7 @@ export default function App() {
                     dxFocus === 'agents' ? 'bg-[#2a2f38] text-amber-500 font-bold' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Agents
+                  {t.simAgents}
                 </button>
               </div>
             </div>
@@ -518,16 +491,16 @@ export default function App() {
             {/* Simulator Output Indicators */}
             <div className="space-y-2.5 bg-[#171a1f] p-3 rounded-xl border border-[#242932] font-sans">
               <div className="flex justify-between items-center pb-2 border-b border-[#242932]/60">
-                <span className="text-[10px] text-gray-450">Est. Efficiency Boost</span>
+                <span className="text-[10px] text-gray-450">{t.simEfficiency}</span>
                 <span className="text-sm font-black text-emerald-400 font-mono">+{dxMetrics.productivity}%</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-[#242932]/60">
-                <span className="text-[10px] text-gray-450">Saved Time Velocity</span>
+                <span className="text-[10px] text-gray-450">{t.simSavedTime}</span>
                 <span className="text-[10px] font-bold text-sky-400 font-mono">{dxMetrics.timeSaved}</span>
               </div>
               
               <div className="pt-1">
-                <span className="block text-[8px] font-mono text-gray-450 uppercase tracking-widest mb-1.5">Direct Action Roadmap:</span>
+                <span className="block text-[8px] font-mono text-gray-450 uppercase tracking-widest mb-1.5">{t.simRoadmapHeader}</span>
                 <ul className="space-y-1.5">
                   {dxMetrics.roadmap.map((step, sIdx) => (
                     <li key={sIdx} className="text-[9px] text-gray-300 leading-normal flex items-start gap-1">
@@ -542,7 +515,7 @@ export default function App() {
             {/* Small status overlay */}
             <div className="mt-3.5 flex items-center justify-between text-[8px] font-mono text-gray-500">
               <span className="text-gray-400">{dxMetrics.difficulty}</span>
-              <span className="text-[7.5px] text-amber-500 font-bold uppercase tracking-wider">13+ Yrs Dual Scope</span>
+              <span className="text-[7.5px] text-amber-500 font-bold uppercase tracking-wider">{t.simBadge}</span>
             </div>
           </div>
         </div>
@@ -552,24 +525,24 @@ export default function App() {
       <section className="bg-white border-y border-[#f1f1f1] py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="space-y-1.5">
-            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Years of Business & IT</p>
+            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">{t.metric1Label}</p>
             <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">13+</p>
-            <p className="font-sans text-xs text-gray-550 leading-relaxed">Bridging Computer Science foundations, venture startup leadership, and MBA-level strategy.</p>
+            <p className="font-sans text-xs text-gray-550 leading-relaxed">{t.metric1Desc}</p>
           </div>
           <div className="space-y-1.5">
-            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Projects Synced</p>
+            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">{t.metric2Label}</p>
             <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">{projects.length}</p>
-            <p className="font-sans text-xs text-gray-550 leading-relaxed">Dynamic real cases fetched automatically from live Notion database workspace.</p>
+            <p className="font-sans text-xs text-gray-550 leading-relaxed">{t.metric2Desc}</p>
           </div>
           <div className="space-y-1.5">
-            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Client Deployments</p>
+            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">{t.metric3Label}</p>
             <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">25+</p>
-            <p className="font-sans text-xs text-gray-550 leading-relaxed">Managed end-to-end custom web, mobile, and API delivery for diverse cross-functional systems.</p>
+            <p className="font-sans text-xs text-gray-550 leading-relaxed">{t.metric3Desc}</p>
           </div>
           <div className="space-y-1.5">
-            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Regions Scaled</p>
+            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">{t.metric4Label}</p>
             <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">10+</p>
-            <p className="font-sans text-xs text-gray-550 leading-relaxed">Built and scaled core operations and scheduling tools across 10+ regions under strict compliance.</p>
+            <p className="font-sans text-xs text-gray-550 leading-relaxed">{t.metric4Desc}</p>
           </div>
         </div>
       </section>
@@ -581,10 +554,10 @@ export default function App() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
             <span className="font-mono text-[10px] uppercase text-[#B2B2B2] font-semibold tracking-widest">
-              Curated Artifacts
+              {t.galleryPreTitle}
             </span>
             <h2 className="font-sans text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mt-1">
-              Visual Case Studies
+              {t.galleryTitle}
             </h2>
           </div>
 
@@ -597,7 +570,7 @@ export default function App() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search tools, stacks, tags..."
+                placeholder={t.gallerySearchPlaceholder}
                 className="w-full font-sans text-xs pl-9 pr-3 py-3 rounded-xl border border-gray-200 bg-white placeholder-gray-450 text-gray-850 focus:outline-none focus:border-neutral-950"
               />
             </div>
@@ -617,7 +590,7 @@ export default function App() {
                   : "bg-white border-gray-200 text-gray-650 hover:bg-neutral-50"
               }`}
             >
-              {cat}
+              {cat === "All" ? t.catAll : (CATEGORY_TRANSLATIONS[activeLang]?.[cat] || cat)}
             </button>
           ))}
         </div>
@@ -657,7 +630,7 @@ export default function App() {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-mono text-[9px] uppercase tracking-wider font-extrabold text-neutral-400">
-                      {proj.category}
+                      {CATEGORY_TRANSLATIONS[activeLang]?.[proj.category] || proj.category}
                     </span>
                     <span className="w-1 h-1 rounded-full bg-neutral-300" />
                     <span className="font-sans text-[10px] font-medium text-gray-500">
@@ -708,8 +681,8 @@ export default function App() {
             <div className="col-span-3 py-16 text-center space-y-3 bg-white border border-dashed border-gray-200 rounded-2xl">
               <FolderOpen size={40} className="mx-auto text-gray-300" />
               <div>
-                <p className="text-sm font-sans font-semibold text-gray-700">No matching projects located</p>
-                <p className="text-xs text-gray-400 font-mono mt-1">Try widening your key filters or search fields.</p>
+                <p className="text-sm font-sans font-semibold text-gray-700">{t.noProjectsFound}</p>
+                <p className="text-xs text-gray-400 font-mono mt-1">{t.noProjectsSub}</p>
               </div>
             </div>
           )}
@@ -731,6 +704,7 @@ export default function App() {
         <ProjectDetailsModal 
           project={selectedProject} 
           onClose={() => setSelectedProject(null)} 
+          activeLang={activeLang}
         />
       )}
 
@@ -742,13 +716,13 @@ export default function App() {
         <div className="max-w-3xl mx-auto px-6">
           <div className="text-center space-y-2 mb-12">
             <span className="font-mono text-[10px] tracking-widest uppercase text-gray-400 font-bold">
-              Gateway consultation
+              {t.contactPreTitle}
             </span>
             <h2 className="font-sans text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-              Start a Case Project
+              {t.contactTitle}
             </h2>
             <p className="font-sans text-xs text-gray-550 max-w-lg mx-auto">
-              Ready to construct a tailored dynamic dashboard or high-fidelity visual design client interface? Leave Budi a message.
+              {t.contactDesc}
             </p>
           </div>
 
@@ -756,7 +730,7 @@ export default function App() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                  Your Full Name
+                  {t.contactNameLabel}
                 </label>
                 <input
                   id="contact-name-input"
@@ -764,14 +738,14 @@ export default function App() {
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g., Jane Doe"
+                  placeholder={t.contactNamePlaceholder}
                   className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
                 />
               </div>
 
               <div>
                 <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                  Email Address
+                  {t.contactEmailLabel}
                 </label>
                 <input
                   id="contact-email-input"
@@ -779,7 +753,7 @@ export default function App() {
                   required
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
-                  placeholder="e.g., jane@domain.com"
+                  placeholder={t.contactEmailPlaceholder}
                   className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
                 />
               </div>
@@ -787,21 +761,21 @@ export default function App() {
 
             <div>
               <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                Communication Subject
+                {t.contactSubjectLabel}
               </label>
               <input
                 id="contact-subject-input"
                 type="text"
                 value={formSubject}
                 onChange={(e) => setFormSubject(e.target.value)}
-                placeholder="e.g., Dynamic Portal consultation"
+                placeholder={t.contactSubjectPlaceholder}
                 className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
               />
             </div>
 
             <div>
               <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                Brief Project Narrative
+                {t.contactMessageLabel}
               </label>
               <textarea
                 id="contact-message-input"
@@ -809,7 +783,7 @@ export default function App() {
                 rows={4}
                 value={formMessage}
                 onChange={(e) => setFormMessage(e.target.value)}
-                placeholder="Outline details or timeline requirements..."
+                placeholder={t.contactMessagePlaceholder}
                 className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all resize-none"
               />
             </div>
@@ -821,11 +795,11 @@ export default function App() {
               className="w-full bg-neutral-900 text-white font-sans text-xs font-semibold py-3.5 px-4 rounded-xl hover:bg-neutral-850 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-neutral-300 disabled:pointer-events-none"
             >
               {formStatus === 'sending' ? (
-                <span>Dispatching message payload...</span>
+                <span>{t.contactSending}</span>
               ) : (
                 <>
                   <Send size={12} />
-                  <span>Send Consultation Draft</span>
+                  <span>{t.contactSubmit}</span>
                 </>
               )}
             </button>
