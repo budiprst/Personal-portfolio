@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -1053,8 +1054,8 @@ Instructions on RAG Matching:
   }
 });
 
-// 3. Contact Form Submission Drafts Log
-app.post("/api/contact", (req, res) => {
+// 3. Contact Form Submission Drafts Log & Direct Email Dispatcher
+app.post("/api/contact", async (req, res) => {
   const { name, email, subject, message } = req.body;
 
   if (!name || !email || !message) {
@@ -1081,17 +1082,95 @@ app.post("/api/contact", (req, res) => {
     currentLeads.push(leadEntry);
     fs.writeFileSync(leadsFile, JSON.stringify(currentLeads, null, 2));
 
-    console.log("New contact lead registered:", leadEntry);
+    console.log("New contact lead registered in contacts.json:", leadEntry);
+
+    // Retrieve SMTP configs lazily
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPortVal = process.env.SMTP_PORT;
+    const smtpPort = smtpPortVal ? parseInt(smtpPortVal, 10) : 587;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+    const targetEmail = process.env.NOTIFICATION_EMAIL || "massivdev@gmail.com";
+
+    let emailSent = false;
+    let feedbackNote = "";
+
+    if (smtpHost && smtpUser && smtpPass) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465, // true if port is 465
+          auth: {
+            user: smtpUser,
+            pass: smtpPass
+          },
+          tls: {
+            rejectUnauthorized: false // Helps bypass draft/self-signed cert issues
+          }
+        });
+
+        const mailOptions = {
+          from: `"${name} Contact Form Inquiry" <${smtpUser}>`,
+          to: targetEmail,
+          replyTo: email,
+          subject: `[Portfolio Inbox] ${subject || "New Inquiry from " + name}`,
+          text: `You have received a new contact submission from your portfolio dashboard!
+
+Sender Details:
+- Name: ${name}
+- Email: ${email}
+- Subject: ${subject || "None Provided"}
+- Timestamp: ${leadEntry.timestamp}
+
+Message Contents:
+---------------------------------------------
+${message}
+---------------------------------------------
+
+Feel free to click reply to message the sender directly.`,
+          html: `
+            <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; color: #111827;">
+              <div style="display: flex; align-items: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 16px; margin-bottom: 20px;">
+                <h2 style="font-size: 20px; font-weight: 800; color: #111827; margin: 0;">Portfolio Inbox Node</h2>
+              </div>
+              <p style="font-size: 15px; color: #374151; margin-bottom: 16px;">You received a real-time lead request from your personal specialist portal:</p>
+              
+              <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+                <p style="margin: 4px 0; font-size: 14px; color: #4b5563;"><strong>Sender:</strong> ${name}</p>
+                <p style="margin: 4px 0; font-size: 14px; color: #4b5563;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #f59e0b; text-decoration: none;">${email}</a></p>
+                <p style="margin: 4px 0; font-size: 14px; color: #4b5563;"><strong>Subject:</strong> ${subject || "Not specified"}</p>
+                <p style="margin: 4px 0; font-size: 14px; color: #4b5563;"><strong>Date:</strong> ${leadEntry.timestamp}</p>
+              </div>
+
+              <div style="background-color: #ffffff; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 15px; line-height: 1.6; color: #1f2937; margin-bottom: 24px; white-space: pre-wrap;">${message}</div>
+
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: 12px; color: #6b7280; text-align: center;">
+                <p style="margin: 0;">Inquiry dispatched dynamically by Nodemailer on your hosted full-stack container.</p>
+              </div>
+            </div>
+          `
+        };
+
+        await transporter.sendMail(mailOptions);
+        emailSent = true;
+        feedbackNote = " A real-time email notification has also been sent to your inbox.";
+      } catch (mailErr: any) {
+        console.error("Mail dispatcher error:", mailErr);
+        feedbackNote = ` (SMTP Attempt failed: ${mailErr.message || "Unknown error"}. Check credentials.)`;
+      }
+    } else {
+      feedbackNote = " (Email dispatch pending: Configure your SMTP keys in the Secrets tab to receive direct mail notifications!)";
+    }
 
     return res.json({ 
       success: true, 
-      message: "Lead successfully recorded in Budi's vault workspace. I will reach out to your inbox shortly." 
+      message: `Lead successfully recorded in Budi's workspace vault.${feedbackNote}` 
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Lead saving error:", err);
-    return res.json({ 
-      success: true, 
-      message: "Message processed successfully. Budi's twin agent will notify him directly." 
+    return res.status(500).json({ 
+      error: "An internal database anomaly occurred while saving your lead request." 
     });
   }
 });
