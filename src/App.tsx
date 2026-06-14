@@ -562,14 +562,14 @@ export default function App() {
             <p className="font-sans text-xs text-gray-550 leading-relaxed">Dynamic real cases fetched automatically from live Notion database workspace.</p>
           </div>
           <div className="space-y-1.5">
-            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Core Load Time</p>
-            <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">240ms</p>
-            <p className="font-sans text-xs text-gray-550 leading-relaxed">Extremely optimized bundles with zero render blocking scripts.</p>
+            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Client Deployments</p>
+            <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">25+</p>
+            <p className="font-sans text-xs text-gray-550 leading-relaxed">Managed end-to-end custom web, mobile, and API delivery for diverse cross-functional systems.</p>
           </div>
           <div className="space-y-1.5">
-            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Active SLA</p>
-            <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">99.9%</p>
-            <p className="font-sans text-xs text-gray-550 leading-relaxed">Self-healing fullstack containers with direct asset pipelines.</p>
+            <p className="font-mono text-[10px] text-gray-450 uppercase tracking-widest font-bold">Regions Scaled</p>
+            <p className="font-sans text-3xl sm:text-4xl font-black text-neutral-950">10+</p>
+            <p className="font-sans text-xs text-gray-550 leading-relaxed">Built and scaled core operations and scheduling tools across 10+ regions under strict compliance.</p>
           </div>
         </div>
       </section>
