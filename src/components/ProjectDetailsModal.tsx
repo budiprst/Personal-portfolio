@@ -28,7 +28,7 @@ const MODAL_LOCALES: Record<string, {
   teamSizeOne: string;
 }> = {
   en: {
-    visualCaseStudy: "Visual Case Study",
+    visualCaseStudy: "Project Case Study",
     executiveNarrative: "Executive Narrative",
     creativeMockups: "Creative Mockups & Proofs",
     projectOutcome: "Project Outcome",
@@ -47,7 +47,7 @@ const MODAL_LOCALES: Record<string, {
     teamSizeOne: "1 Member"
   },
   ja: {
-    visualCaseStudy: "ビジュアルケーススタディ",
+    visualCaseStudy: "プロジェクト事例実績詳細",
     executiveNarrative: "プロジェクト詳細概要 / 成果",
     creativeMockups: "クリエイティブモックアップ & 実証",
     projectOutcome: "プロジェクト成果・達成事項",
@@ -66,7 +66,7 @@ const MODAL_LOCALES: Record<string, {
     teamSizeOne: "1名"
   },
   fr: {
-    visualCaseStudy: "Étude de Cas Visuelle",
+    visualCaseStudy: "Étude de Cas Projet",
     executiveNarrative: "Récit Exécutif",
     creativeMockups: "Mockups Créatifs & Preuves",
     projectOutcome: "Résultat du Projet",
@@ -85,7 +85,7 @@ const MODAL_LOCALES: Record<string, {
     teamSizeOne: "1 Membre"
   },
   es: {
-    visualCaseStudy: "Caso de Estudio Visual",
+    visualCaseStudy: "Caso de Estudio de Proyecto",
     executiveNarrative: "Narrativa Ejecutiva",
     creativeMockups: "Maquetas Creativas y Pruebas",
     projectOutcome: "Resultado del Proyecto",
@@ -104,7 +104,7 @@ const MODAL_LOCALES: Record<string, {
     teamSizeOne: "1 Miembro"
   },
   de: {
-    visualCaseStudy: "Visuelle Fallstudie",
+    visualCaseStudy: "Projekt-Fallstudie",
     executiveNarrative: "Projektbeschreibung / Ergebnisse",
     creativeMockups: "Kreative Entwürfe & Belege",
     projectOutcome: "Projektergebnis",
@@ -123,7 +123,7 @@ const MODAL_LOCALES: Record<string, {
     teamSizeOne: "1 Person"
   },
   id: {
-    visualCaseStudy: "Studi Kasus Visual",
+    visualCaseStudy: "Studi Kasus Proyek",
     executiveNarrative: "Naratif Eksekutif",
     creativeMockups: "Tata Letak Kreatif & Bukti",
     projectOutcome: "Hasil Akhir Proyek",
@@ -142,7 +142,7 @@ const MODAL_LOCALES: Record<string, {
     teamSizeOne: "1 Anggota"
   },
   sw: {
-    visualCaseStudy: "Uchunguzi wa Miradi",
+    visualCaseStudy: "Uchunguzi wa Mradi wa Kina",
     executiveNarrative: "Maelezo ya Kina ya Mradi",
     creativeMockups: "Mifano ya Ubunifu & Ushahidi",
     projectOutcome: "Matokeo ya Mradi",
@@ -180,7 +180,7 @@ const MODAL_LOCALES: Record<string, {
     teamSizeOne: "Eeyan 1"
   },
   zu: {
-    visualCaseStudy: "Izifundo ze-Case Ezibonakalayo",
+    visualCaseStudy: "Izifundo ze-Case Ephrojekthi",
     executiveNarrative: "Incazelo Yesicwangciso",
     creativeMockups: "Maqhinga Nezinkomba",
     projectOutcome: "Matokeo Wephrojekthi",

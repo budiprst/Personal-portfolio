@@ -29,6 +29,7 @@ import { DEFAULT_PROJECTS } from "./data";
 import ProjectDetailsModal from "./components/ProjectDetailsModal";
 import AIChatBubble from "./components/AIChatBubble";
 import AdminPanel from "./components/AdminPanel";
+import bpLogo from "./assets/images/bp_logo.svg";
 import budiPortrait from "./assets/images/budi_portrait.png";
 import { LANGUAGES, TRANSLATIONS, CATEGORY_TRANSLATIONS, LanguageCode } from "./translations";
 
@@ -261,9 +262,12 @@ export default function App() {
       <header className="sticky top-0 z-30 bg-[#fafafa]/80 backdrop-blur-md border-b border-[#f1f1f1] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="font-sans font-black text-lg tracking-widest text-neutral-900 bg-neutral-900 text-white px-2.5 py-1 rounded-lg">
-              B.P
-            </span>
+            <img 
+              src={bpLogo} 
+              alt="B.P Logo" 
+              className="w-9 h-9 object-contain bg-transparent shrink-0" 
+              referrerPolicy="no-referrer"
+            />
             <div className="hidden sm:block">
               <span className="font-sans font-bold text-sm tracking-tight text-neutral-900 block leading-none">Budi Prst</span>
               <span className="font-mono text-[9px] text-gray-400 tracking-wider block mt-1 uppercase">AI-DX Transformation Specialist</span>
@@ -325,17 +329,12 @@ export default function App() {
             {t.heroDesc}
           </p>
 
-          {/* Mobile Profile Block: Only visible below lg */}
           <div className="lg:hidden flex flex-col sm:flex-row items-start sm:items-center gap-4 p-5 bg-white border border-gray-150 rounded-2xl mb-8 w-full max-w-md shadow-sm">
             <img 
               src={budiPortrait} 
               alt="Budi Prasetyo - AI-DX Transformation Specialist" 
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-gray-200 shrink-0"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 border border-gray-150 shadow-sm"
               referrerPolicy="no-referrer"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'><rect width='100' height='100' rx='16' fill='%23111317'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4, 4'/><text x='50%25' y='55%25' font-family='sans-serif' font-weight='800' font-size='28' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'>BP</text></svg>";
-              }}
             />
             <div>
               <h4 className="font-sans font-bold text-neutral-900 text-sm">Budi Prasetyo</h4>
@@ -379,10 +378,6 @@ export default function App() {
                 alt="Budi Prasetyo - AI-DX Transformation Specialist" 
                 className="w-full h-full object-cover grayscale-[8%] hover:grayscale-0 transition-all duration-700"
                 referrerPolicy="no-referrer"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'><rect width='100' height='100' rx='16' fill='%23111317'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23f59e0b' stroke-width='2' stroke-dasharray='4, 4'/><text x='50%25' y='55%25' font-family='sans-serif' font-weight='800' font-size='28' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'>BP</text></svg>";
-                }}
               />
               <div className="absolute top-4 left-4 flex gap-1.5 flex-wrap">
                 <span className="inline-flex items-center gap-1 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 text-white font-mono text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg">
@@ -824,9 +819,14 @@ export default function App() {
       {/* Elegant Minimal Footer incorporating the user's requested social links */}
       <footer className="bg-white border-t border-[#f1f1f1] px-6 py-12 relative z-10 text-center">
         <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
-          <div className="flex items-center gap-2.5">
-            <span className="font-sans font-black text-base text-neutral-900 border border-neutral-900 px-2 py-0.5 rounded">B.P</span>
-            <span className="font-sans font-bold text-xs tracking-tight text-neutral-900">Budi Prst creative space.</span>
+          <div className="flex flex-col items-center gap-2">
+            <img 
+              src={bpLogo} 
+              alt="B.P Logo" 
+              className="w-12 h-12 object-contain bg-transparent" 
+              referrerPolicy="no-referrer"
+            />
+            <span className="font-sans font-bold text-xs tracking-tight text-neutral-900">{t.footerSpace}</span>
           </div>
 
           {/* User stated Links - Absolute requirement */}
