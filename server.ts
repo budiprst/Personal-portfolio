@@ -210,6 +210,88 @@ function getRelatedProjectImage(title: string, category: string, tags: string[],
   return defaults[index % defaults.length];
 }
 
+function determineCategory(
+  responsibilities: string[],
+  title: string,
+  techStack: string[]
+): string {
+  const allowedCategories = [
+    "Frontend Development",
+    "Backend Development",
+    "Fullstack Development",
+    "RESTful API Development",
+    "New Feature Implementation",
+    "Operational Improvement",
+    "Quality Assurance",
+    "360 AV Shooting",
+    "Teaching",
+    "Bug Fixing"
+  ];
+
+  if (!responsibilities || responsibilities.length === 0) {
+    return "Uncategorized";
+  }
+
+  // 1. First, check if any of the project's responsibilities perfectly matches an allowed category
+  for (const resp of responsibilities) {
+    const trimmedResp = resp.trim();
+    const matched = allowedCategories.find(c => c.toLowerCase() === trimmedResp.toLowerCase());
+    if (matched) {
+      return matched;
+    }
+  }
+
+  // 2. Second, look for fuzzy matches within the project's responsibilities list
+  for (const resp of responsibilities) {
+    const text = resp.toLowerCase();
+    
+    if (text.includes("front") || text.includes("ui") || text.includes("ux") || text.includes("画面") || text.includes("フロント")) {
+      return "Frontend Development";
+    }
+    if (text.includes("api") || text.includes("rest") || text.includes("endpoint") || text.includes("エンドポイント")) {
+      return "RESTful API Development";
+    }
+    if (text.includes("back") || text.includes("server") || text.includes("サーバー") || text.includes("バックエンド")) {
+      return "Backend Development";
+    }
+    if (text.includes("full") || text.includes("フルスタック") || text.includes("両方") || text.includes("全体")) {
+      return "Fullstack Development";
+    }
+    if (text.includes("bug") || text.includes("fix") || text.includes("修正") || text.includes("バグ")) {
+      return "Bug Fixing";
+    }
+    if (text.includes("qa") || text.includes("test") || text.includes("テスト") || text.includes("quality")) {
+      return "Quality Assurance";
+    }
+    if (text.includes("operation") || text.includes("業務改善") || text.includes("効率化") || text.includes("improvement")) {
+      return "Operational Improvement";
+    }
+    if (text.includes("new feature") || text.includes("新規") || text.includes("機能追加") || text.includes("追加実装")) {
+      return "New Feature Implementation";
+    }
+    if (text.includes("av") || text.includes("360") || text.includes("shooting") || text.includes("動画") || text.includes("撮影")) {
+      return "360 AV Shooting";
+    }
+    if (text.includes("teach") || text.includes("講師") || text.includes("教育") || text.includes("指導")) {
+      return "Teaching";
+    }
+  }
+
+  // 3. Fallback to fuzzy match on project title and tech stack
+  const textCombined = `${title} ${techStack.join(" ")}`.toLowerCase();
+  if (textCombined.includes("react") || textCombined.includes("html") || textCombined.includes("css") || textCombined.includes("vue") || textCombined.includes("frontend")) {
+    return "Frontend Development";
+  }
+  if (textCombined.includes("api") || textCombined.includes("endpoint") || textCombined.includes("rest")) {
+    return "RESTful API Development";
+  }
+  if (textCombined.includes("node") || textCombined.includes("backend") || textCombined.includes("express") || textCombined.includes("database") || textCombined.includes("sql")) {
+    return "Backend Development";
+  }
+
+  return "Uncategorized";
+}
+
 // 2. Notion API Dynamic Gateway Endpoint
 app.post("/api/projects", async (req, res) => {
   // Use saved server-side credentials if available to protect Budi's keys from public visitors,
@@ -474,8 +556,10 @@ app.post("/api/projects", async (req, res) => {
       const imgProp = matchProp(props, "image", "Image", "画像", "添付画像", "アイキャッチ", "カバー画像");
       const rawImage = getTextProp(imgProp);
       const isPlaceholder = !rawImage || rawImage.trim() === "" || rawImage === "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800";
+      
+      const category = determineCategory(responsibilities, title, finalTechStack);
       const image = isPlaceholder 
-        ? getRelatedProjectImage(title, "Full-Stack Development", finalTechStack, description, idx)
+        ? getRelatedProjectImage(title, category, finalTechStack, description, idx)
         : rawImage;
 
       // Assemble a fully loaded Markdown body automatically representing the rich schema blocks!
@@ -515,7 +599,7 @@ ${osList.length > 0 ? `- **OS環境**: ${osList.join(", ")}` : ""}
         slug,
         description,
         content,
-        category: "Full-Stack Development",
+        category,
         tags: finalTags,
         techStack: finalTechStack,
         image,
