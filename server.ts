@@ -246,10 +246,16 @@ function determineCategory(
   for (const resp of responsibilities) {
     const text = resp.toLowerCase();
     
-    if (text.includes("front") || text.includes("ui") || text.includes("ux") || text.includes("画面") || text.includes("フロント")) {
+    // Exact word matching helpers
+    const hasWord = (word: string) => {
+      const escaped = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      return new RegExp(`\\b${escaped}\\b`, 'i').test(text);
+    };
+
+    if (text.includes("front") || hasWord("ui") || hasWord("ux") || text.includes("画面") || text.includes("フロント")) {
       return "Frontend Development";
     }
-    if (text.includes("api") || text.includes("rest") || text.includes("endpoint") || text.includes("エンドポイント")) {
+    if (hasWord("api") || text.includes("rest") || text.includes("endpoint") || text.includes("エンドポイント")) {
       return "RESTful API Development";
     }
     if (text.includes("back") || text.includes("server") || text.includes("サーバー") || text.includes("バックエンド")) {
@@ -261,7 +267,7 @@ function determineCategory(
     if (text.includes("bug") || text.includes("fix") || text.includes("修正") || text.includes("バグ")) {
       return "Bug Fixing";
     }
-    if (text.includes("qa") || text.includes("test") || text.includes("テスト") || text.includes("quality")) {
+    if (hasWord("qa") || text.includes("test") || text.includes("テスト") || text.includes("quality")) {
       return "Quality Assurance";
     }
     if (text.includes("operation") || text.includes("業務改善") || text.includes("効率化") || text.includes("improvement")) {
@@ -270,9 +276,17 @@ function determineCategory(
     if (text.includes("new feature") || text.includes("新規") || text.includes("機能追加") || text.includes("追加実装")) {
       return "New Feature Implementation";
     }
-    if (text.includes("av") || text.includes("360") || text.includes("shooting") || text.includes("動画") || text.includes("撮影")) {
+    
+    // Strict match for 360 AV Shooting:
+    // Ensure "shooting" does not match "troubleshooting", and "av" is treated as a word (no java/laravel mismatch)
+    const formsOf360 = text.includes("360") || text.includes("360度") || text.includes("全天球");
+    const formsOfAv = hasWord("av") || text.includes("audio-visual") || text.includes("audio visual");
+    const formsOfShooting = /(?<!trouble)shooting/i.test(text) || text.includes("撮影") || text.includes("録画") || text.includes("動画");
+    
+    if ((formsOf360 && formsOfShooting) || (formsOfAv && formsOfShooting) || (formsOf360 && formsOfAv) || text.includes("全天球") || text.includes("360度")) {
       return "360 AV Shooting";
     }
+    
     if (text.includes("teach") || text.includes("講師") || text.includes("教育") || text.includes("指導")) {
       return "Teaching";
     }
@@ -280,13 +294,14 @@ function determineCategory(
 
   // 3. Fallback to fuzzy match on project title and tech stack
   const textCombined = `${title} ${techStack.join(" ")}`.toLowerCase();
+  
   if (textCombined.includes("react") || textCombined.includes("html") || textCombined.includes("css") || textCombined.includes("vue") || textCombined.includes("frontend")) {
     return "Frontend Development";
   }
   if (textCombined.includes("api") || textCombined.includes("endpoint") || textCombined.includes("rest")) {
     return "RESTful API Development";
   }
-  if (textCombined.includes("node") || textCombined.includes("backend") || textCombined.includes("express") || textCombined.includes("database") || textCombined.includes("sql")) {
+  if (textCombined.includes("node") || textCombined.includes("backend") || textCombined.includes("express") || textCombined.includes("database") || textCombined.includes("sql") || textCombined.includes("laravel") || textCombined.includes("php") || textCombined.includes("django") || textCombined.includes("oracle")) {
     return "Backend Development";
   }
 
@@ -506,19 +521,28 @@ app.post("/api/projects", async (req, res) => {
 
       const finalTechStack = cleanTechStack.length > 0 ? cleanTechStack : ["React", "TypeScript", "Tailwind CSS"];
 
-      // 7. Resolve Duties/Responsibilities
+      // 7. Resolve Duties/Responsibilities and Dynamic Category
       let responsibilities: string[] = [];
       const jobRespProp = props["Job Responsibilities"] || props["job_responsibilities"] || props["Job_Responsibilities"];
       const respProp = props["Responsibilities"] || props["responsibilities"];
       
+      let notionCategoryTags: string[] = [];
       if (jobRespProp && jobRespProp.type === "multi_select") {
-        responsibilities = getMultiProp(jobRespProp);
-      } else if (respProp) {
+        notionCategoryTags = getMultiProp(jobRespProp);
+      }
+      
+      if (respProp) {
         const rawResp = getTextProp(respProp);
         if (rawResp) {
           responsibilities = rawResp.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
         }
       }
+      
+      // Fallback for responsibilities if rich text was empty
+      if (responsibilities.length === 0 && notionCategoryTags.length > 0) {
+        responsibilities = notionCategoryTags;
+      }
+      
       if (responsibilities.length === 0) {
         responsibilities = [description];
       }
@@ -558,7 +582,14 @@ app.post("/api/projects", async (req, res) => {
       const rawImage = getTextProp(imgProp);
       const isPlaceholder = !rawImage || rawImage.trim() === "" || rawImage === "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800";
       
-      const category = determineCategory(responsibilities, title, finalTechStack);
+      // Compute the category dynamically. If Notion's "Job Responsibilities" multi-select has tags, 
+      // use the first tag as the true dynamic category of the project. Otherwise, fall back to our enhanced guessing.
+      let category = "Uncategorized";
+      if (notionCategoryTags.length > 0) {
+        category = notionCategoryTags[0];
+      } else {
+        category = determineCategory(responsibilities, title, finalTechStack);
+      }
       const image = isPlaceholder 
         ? getRelatedProjectImage(title, category, finalTechStack, description, idx)
         : rawImage;
