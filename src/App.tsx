@@ -848,16 +848,6 @@ export default function App() {
           onRefreshProjects={refreshPortfolioData}
         />
       )}
-
-      {/* Case studies detail overlays */}
-      {selectedProject && (
-        <ProjectDetailsModal 
-          project={selectedProject} 
-          onClose={() => setSelectedProject(null)} 
-          activeLang={activeLang}
-        />
-      )}
-
       {/* Floating AI chatbot assistant thread */}
       <AIChatBubble />
 
@@ -869,312 +859,105 @@ export default function App() {
               {t.contactPreTitle}
             </span>
             <h2 className="font-sans text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-              {contactTab === 'message' ? t.contactTitle : (activeLang === 'ja' ? "Budiとのミーティング予約" : "Book a Meeting")}
+              {t.contactTitle}
             </h2>
             <p className="font-sans text-xs text-gray-550 max-w-lg mx-auto">
-              {contactTab === 'message' ? t.contactDesc : (activeLang === 'ja' ? "Budiの空きスロットを選択して、オンライン（Google Meet）またはオフライン（東京）の打ち合わせを自動で予約できます。" : "Choose an available time slot below to coordinate an online (Google Meet) or offline (Tokyo local) consultation with Budi.")}
+              {t.contactDesc}
             </p>
           </div>
 
-          {/* Tab Selector */}
-          <div className="flex items-center justify-center gap-2 mb-8 bg-neutral-250/20 p-1 rounded-xl max-w-xs mx-auto border border-gray-200">
-            <button
-              onClick={() => setContactTab('message')}
-              className={`flex-1 text-[10px] font-mono font-bold py-2 px-3 rounded-lg transition-all cursor-pointer ${
-                contactTab === 'message'
-                  ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-neutral-900 hover:bg-neutral-100'
-              }`}
-            >
-              ✉️ {activeLang === 'ja' ? "メッセージ" : "Message"}
-            </button>
-            <button
-              onClick={() => setContactTab('schedule')}
-              className={`flex-1 text-[10px] font-mono font-bold py-2 px-3 rounded-lg transition-all cursor-pointer ${
-                contactTab === 'schedule'
-                  ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-neutral-900 hover:bg-neutral-100'
-              }`}
-            >
-              📅 {activeLang === 'ja' ? "カレンダー予約" : "Scheduler"}
-            </button>
-          </div>
-
-          {contactTab === 'message' ? (
-            <form onSubmit={handleContactSubmit} className="bg-white border border-gray-150 p-6 sm:p-8 rounded-2xl shadow-sm space-y-5 animate-in fade-in duration-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                    {t.contactNameLabel}
-                  </label>
-                  <input
-                    id="contact-name-input"
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder={t.contactNamePlaceholder}
-                    className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                    {t.contactEmailLabel}
-                  </label>
-                  <input
-                    id="contact-email-input"
-                    type="email"
-                    required
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder={t.contactEmailPlaceholder}
-                    className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
-                  />
-                </div>
-              </div>
-
+          <form onSubmit={handleContactSubmit} className="bg-white border border-gray-150 p-6 sm:p-8 rounded-2xl shadow-sm space-y-5 animate-in fade-in duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                  {t.contactSubjectLabel}
+                <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5 font-bold">
+                  {t.contactNameLabel}
                 </label>
                 <input
-                  id="contact-subject-input"
+                  id="contact-name-input"
                   type="text"
-                  value={formSubject}
-                  onChange={(e) => setFormSubject(e.target.value)}
-                  placeholder={t.contactSubjectPlaceholder}
-                  className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                  {t.contactMessageLabel}
-                </label>
-                <textarea
-                  id="contact-message-input"
                   required
-                  rows={4}
-                  value={formMessage}
-                  onChange={(e) => setFormMessage(e.target.value)}
-                  placeholder={t.contactMessagePlaceholder}
-                  className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-850 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all resize-none"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder={t.contactNamePlaceholder}
+                  className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
                 />
               </div>
 
-              <button
-                id="btn-submit-contact-form"
-                type="submit"
-                disabled={formStatus === 'sending'}
-                className="w-full bg-neutral-900 text-white font-sans text-xs font-semibold py-3.5 px-4 rounded-xl hover:bg-neutral-850 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-neutral-350"
-              >
-                {formStatus === 'sending' ? (
-                  <span>{t.contactSending}</span>
-                ) : (
-                  <>
-                    <Send size={12} />
-                    <span>{t.contactSubmit}</span>
-                  </>
-                )}
-              </button>
-
-              {formStatus === 'success' && (
-                <div className="p-3 bg-emerald-50 border border-emerald-150 rounded-xl text-emerald-800 flex items-start gap-2">
-                  <CheckCircle2 size={15} className="shrink-0 mt-0.5 text-emerald-600" />
-                  <p className="text-xs">{formFeedback}</p>
-                </div>
-              )}
-
-              {formStatus === 'error' && (
-                <div className="p-3 bg-rose-50 border border-rose-150 rounded-xl text-rose-850 flex items-start gap-2">
-                  <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
-                  <p className="text-xs">{formFeedback}</p>
-                </div>
-              )}
-            </form>
-          ) : (
-            <form onSubmit={handleBookMeeting} className="bg-white border border-gray-150 p-6 sm:p-8 rounded-2xl shadow-sm space-y-5 animate-in fade-in duration-200">
-              
-              <div className="bg-neutral-50 border border-gray-200 rounded-xl p-4 space-y-3">
-                <h3 className="text-xs font-bold font-mono uppercase text-gray-500 flex items-center gap-1.5">
-                  <Calendar size={13} className="text-neutral-700" />
-                  {activeLang === 'ja' ? "空き状況の確認" : "Budi's Schedule Tracker"}
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[9px] font-mono text-gray-400 uppercase tracking-wider mb-1">
-                      {activeLang === 'ja' ? "日付を選択" : "Choose Date"}
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      min={new Date().toISOString().split("T")[0]}
-                      value={bookingDate}
-                      onChange={(e) => setBookingDate(e.target.value)}
-                      className="w-full text-xs font-mono bg-white border border-gray-200 px-3 py-2 rounded-lg text-neutral-850 focus:outline-none focus:border-neutral-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[9px] font-mono text-gray-400 uppercase tracking-wider mb-1">
-                      {activeLang === 'ja' ? "打合せ形態" : "Meeting Style"}
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setBookingType('online')}
-                        className={`text-[10px] font-mono font-bold py-2 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all ${
-                          bookingType === 'online'
-                            ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm'
-                            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        <Video size={12} />
-                        Online
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBookingType('offline')}
-                        className={`text-[10px] font-mono font-bold py-2 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all ${
-                          bookingType === 'offline'
-                            ? 'bg-neutral-900 border-neutral-900 text-white shadow-sm'
-                            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        <MapPin size={12} />
-                        Offline (Tokyo)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {isWeekendString(bookingDate) ? (
-                  <div className="p-3 bg-amber-55/10 border border-amber-500/20 rounded-lg text-amber-800 text-xs font-mono text-center">
-                    ⚠️ {activeLang === 'ja' ? "週末（土・日）は休みです。平日を選択してください。" : "Budi rests on weekends. Please coordinate a weekday slot."}
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-[9px] font-mono text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                      <span>{activeLang === 'ja' ? "利用可能な時間枠 (JST / 日本時間)" : "Available Time Slots (JST / Tokyo Time)"}</span>
-                      {fetchingCalendar && <span className="text-[8px] animate-pulse text-indigo-600 font-bold uppercase">{activeLang === 'ja' ? "同期中..." : "Syncing..."}</span>}
-                    </label>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-                      {TIME_SLOTS.map((slot) => {
-                        const isBooked = isTimeSlotBooked(bookingDate, slot);
-                        return (
-                          <button
-                            key={slot}
-                            type="button"
-                            disabled={isBooked}
-                            onClick={() => setBookingTimeSlot(slot)}
-                            className={`text-[10px] font-mono font-semibold py-1.5 rounded-md border text-center transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
-                              bookingTimeSlot === slot && !isBooked
-                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm font-semibold'
-                                : isBooked
-                                ? 'bg-neutral-100 text-gray-400 border-gray-200 line-through'
-                                : 'bg-white border-gray-200 text-gray-700 hover:bg-neutral-100'
-                            }`}
-                          >
-                            {slot} {isBooked && "🚫"}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Personal reservation details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5 font-semibold">
-                    {activeLang === 'ja' ? "お名前" : "Your Name"} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={bookingName}
-                    onChange={(e) => setBookingName(e.target.value)}
-                    placeholder="e.g. Satoshi Nakamoto"
-                    className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5 font-semibold">
-                    {activeLang === 'ja' ? "メールアドレス" : "Your Email"} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={bookingEmail}
-                    onChange={(e) => setBookingEmail(e.target.value)}
-                    placeholder="e.g. s.nakamoto@tokyo.org"
-                    className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5 font-semibold">
-                  {activeLang === 'ja' ? "打合せ議題" : "Meeting Topic / Subject"} <span className="text-red-500">*</span>
+                <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5 font-bold">
+                  {t.contactEmailLabel}
                 </label>
                 <input
-                  type="text"
+                  id="contact-email-input"
+                  type="email"
                   required
-                  value={bookingTopic}
-                  onChange={(e) => setBookingTopic(e.target.value)}
-                  placeholder="e.g. AI-DX Consulting or MBA Mentoring Discussion"
-                  className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  placeholder={t.contactEmailPlaceholder}
+                  className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5">
-                  {activeLang === 'ja' ? "詳細・メッセージ" : "Notes / Brief Agenda Details"}
-                </label>
-                <textarea
-                  rows={3}
-                  value={bookingDesc}
-                  onChange={(e) => setBookingDesc(e.target.value)}
-                  placeholder="How can Budi support your structural design, cloud systems, or strategic consulting ambitions?"
-                  className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all resize-none"
-                />
+            <div>
+              <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5 font-bold">
+                {t.contactSubjectLabel}
+              </label>
+              <input
+                id="contact-subject-input"
+                type="text"
+                value={formSubject}
+                onChange={(e) => setFormSubject(e.target.value)}
+                placeholder={t.contactSubjectPlaceholder}
+                className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-mono font-medium text-gray-400 uppercase tracking-wide mb-1.5 font-bold">
+                {t.contactMessageLabel}
+              </label>
+              <textarea
+                id="contact-message-input"
+                required
+                rows={4}
+                value={formMessage}
+                onChange={(e) => setFormMessage(e.target.value)}
+                placeholder={t.contactMessagePlaceholder}
+                className="w-full font-sans text-xs px-3.5 py-3 rounded-lg border border-gray-200 bg-neutral-50/50 text-gray-855 placeholder-gray-350 focus:outline-none focus:border-neutral-900 focus:bg-white transition-all resize-none"
+              />
+            </div>
+
+            <button
+              id="btn-submit-contact-form"
+              type="submit"
+              disabled={formStatus === 'sending'}
+              className="w-full bg-neutral-900 text-white font-sans text-xs font-semibold py-3.5 px-4 rounded-xl hover:bg-neutral-850 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-neutral-350"
+            >
+              {formStatus === 'sending' ? (
+                <span>{t.contactSending}</span>
+              ) : (
+                <>
+                  <Send size={12} />
+                  <span>{t.contactSubmit}</span>
+                </>
+              )}
+            </button>
+
+            {formStatus === 'success' && (
+              <div className="p-3 bg-emerald-50 border border-emerald-150 rounded-xl text-emerald-800 flex items-start gap-2">
+                <CheckCircle2 size={15} className="shrink-0 mt-0.5 text-emerald-600" />
+                <p className="text-xs">{formFeedback}</p>
               </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={bookingStatus === 'sending' || isWeekendString(bookingDate)}
-                className="w-full bg-neutral-900 text-white font-sans text-xs font-bold py-3.5 px-4 rounded-xl hover:bg-neutral-850 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-neutral-300 disabled:pointer-events-none shadow-sm"
-              >
-                {bookingStatus === 'sending' ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <Calendar size={13} />
-                    <span>{activeLang === 'ja' ? "ミーティングを確定する" : "Confirm Appointment Booking"}</span>
-                  </>
-                )}
-              </button>
-
-              {bookingStatus === 'success' && (
-                <div className="p-3 bg-emerald-50 border border-emerald-150 rounded-xl text-emerald-800 flex items-start gap-2 animate-in fade-in">
-                  <CheckCircle2 size={15} className="shrink-0 mt-0.5 text-emerald-600" />
-                  <p className="text-xs">{bookingFeedback}</p>
-                </div>
-              )}
-
-              {bookingStatus === 'error' && (
-                <div className="p-3 bg-rose-50 border border-rose-150 rounded-xl text-rose-850 flex items-start gap-2 animate-in fade-in">
-                  <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
-                  <p className="text-xs">{bookingFeedback}</p>
-                </div>
-              )}
-
-            </form>
-          )}
+            {formStatus === 'error' && (
+              <div className="p-3 bg-rose-50 border border-rose-150 rounded-xl text-rose-850 flex items-start gap-2">
+                <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
+                <p className="text-xs">{formFeedback}</p>
+              </div>
+            )}
+          </form>
         </div>
       </section>
 

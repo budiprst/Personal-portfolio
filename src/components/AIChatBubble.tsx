@@ -51,7 +51,7 @@ export default function AIChatBubble() {
       {
         id: "welcome",
         sender: "assistant",
-        text: "Welcome to Budi's Interactive Portfolio Twin! I am directly integrated with Budi's dynamic project vaults, professional schedule logs, and technical design documents to help go beyond a standard chatbot. Ask me anything about his civil engineering & IT architecture work, custom AI automation, or schedule direct syncs!",
+        text: "Welcome to Budi's Interactive Portfolio Assistant! I am directly integrated with Budi's dynamic project vaults, professional schedule logs, and technical design documents to help go beyond a standard chatbot. Ask me anything about his business strategy & IT architecture work, custom AI automation, or schedule direct syncs!",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -295,40 +295,26 @@ export default function AIChatBubble() {
         >
           <div 
             id="chat-desk-container"
-            className={`bg-white border border-gray-150 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 transition-all ${
-              isExpanded 
-                ? "w-full max-w-[95%] lg:max-w-5xl h-[85vh] max-h-[720px]" 
-                : "w-full max-w-[92%] sm:max-w-lg h-[80vh] max-h-[610px]"
-            }`}
+            className="bg-white border border-gray-150 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 transition-all w-full max-w-[92%] sm:max-w-lg h-[80vh] max-h-[610px]"
           >
           {/* Header */}
-          <div className="px-4 py-3 bg-neutral-900 text-white flex items-center justify-between shrink-0">
+          <div className="px-4 py-3 bg-neutral-900 text-white flex items-center justify-between shrink-0 font-sans">
             <div className="flex items-center gap-2">
               <Sparkles size={14} className="text-amber-400 animate-pulse" />
               <div>
-                <p className="text-xs font-semibold">Budi's Interactive Portfolio Twin Workspace</p>
-                <div className="flex items-center gap-1.5 lines-none mt-0.5">
+                <p className="text-xs font-semibold">Budi's Portfolio Support Assistant</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[9px] font-mono text-neutral-400 tracking-tight">Active Online Workspace</span>
+                  <span className="text-[9px] font-mono text-neutral-400 tracking-tight">Active Support Assistant</span>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-1.5">
-              {/* Maximize/Minimize Toggle button */}
-              <button
-                id="btn-toggle-expand"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-1.5 text-gray-400 hover:text-white hover:bg-neutral-800 rounded transition-colors hidden sm:inline-flex"
-                title={isExpanded ? "Collapse Panel" : "Expand to Dashboard View with Interactive Calendar"}
-              >
-                {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-              </button>
-              
               <button
                 id="btn-close-assistant"
                 onClick={() => setIsOpen(false)}
-                className="p-1 text-gray-400 hover:text-white hover:bg-neutral-850 rounded transition-colors"
+                className="p-1 text-gray-400 hover:text-white hover:bg-neutral-850 rounded transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -375,13 +361,6 @@ export default function AIChatBubble() {
               {messages.length === 1 && (
                 <div className="px-3 py-2 bg-white border-t border-gray-100 flex gap-2 overflow-x-auto scroller-none shrink-0 min-h-[48px] items-center">
                   <button
-                    id="btn-preset-schedule"
-                    onClick={() => loadPresetQuery("Are you free for a meeting? Can I check your schedule?")}
-                    className="shrink-0 text-[10px] font-bold bg-indigo-50 border border-indigo-150 px-2.5 py-1.5 rounded-full hover:bg-indigo-100 transition-colors cursor-pointer text-indigo-705"
-                  >
-                    📅 Check Schedule & Book
-                  </button>
-                  <button
                     id="btn-preset-problem"
                     onClick={() => loadPresetQuery("I am facing an operational bottleneck. What details do you need about my problem to design a custom automation workflow or database structure for me?")}
                     className="shrink-0 text-[10px] font-medium bg-neutral-50 border border-gray-150 px-2.5 py-1.5 rounded-full hover:bg-neutral-100 transition-colors cursor-pointer text-gray-700"
@@ -405,8 +384,8 @@ export default function AIChatBubble() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask Budi's interactive twin representative..."
-                  className="flex-1 font-sans text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-neutral-50 text-gray-850 placeholder-gray-400 focus:outline-none focus:border-neutral-900 transition-colors"
+                  placeholder="Ask a question about Budi's experience..."
+                  className="flex-1 font-sans text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-neutral-50 text-gray-855 placeholder-gray-400 focus:outline-none focus:border-neutral-900 transition-colors"
                 />
                 <button
                   id="btn-send-message-assistant"
@@ -420,7 +399,7 @@ export default function AIChatBubble() {
             </div>
 
             {/* Right Column: Intelligent Companion Workspace (Visible when maximized on sm+ view screens) */}
-            {isExpanded && (
+            {false && isExpanded && (
               <div id="companion-workspace-pane" className="hidden sm:flex w-[380px] md:w-[480px] border-l border-gray-150 bg-neutral-50/40 flex-col overflow-hidden animate-in fade-in duration-200">
                 {/* Horizontal Tab Selections */}
                 <div className="px-4 py-2.5 border-b border-gray-150 bg-white flex items-center justify-between shrink-0">

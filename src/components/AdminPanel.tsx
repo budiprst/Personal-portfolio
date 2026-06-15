@@ -560,7 +560,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
                 <Sparkles className="w-4 h-4 animate-pulse" />
               </span>
               <h2 className="font-sans text-xs font-extrabold tracking-wider text-white uppercase">
-                Twin Hub Security Gate
+                Portfolio Hub Security Gate
               </h2>
             </div>
             <button
@@ -574,7 +574,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
           {/* Prompt info */}
           <div className="space-y-2">
             <p className="text-xs text-[#a0aab4] font-sans leading-relaxed">
-              Enter Budi's administrative master password to securely authenticate your session and manage the Digital Twin's files, news announcements, and Notion settings.
+              Enter Budi's administrative master password to securely authenticate your session and manage the files, news announcements, and Notion settings.
             </p>
           </div>
 
