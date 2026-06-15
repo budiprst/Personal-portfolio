@@ -22,6 +22,10 @@ Budi has founded several successful companies, including:
 ### Q5: Can Budi speak multiple languages?
 Yes! Budi speaks native Indonesian, business-level English, and basic-to-intermediate Japanese, which he practices frequently in Tokyo.
 
-### Q6: How do I contact Budi or view his work?
-You can contact Budi via his academic email `budi.prasetyo.2025@globis.ac.jp` or secondary email `massivdev@gmail.com`. You can also complete the Contact form on his digital twin page, or connect on [LinkedIn](https://www.linkedin.com/in/budi-prst/) and inspect his repositories on [GitHub](https://github.com/budiprst/).
+### Q6: How do I contact Budi or view his work and profiles?
+You can contact Budi via his academic email `budi.prasetyo.2025@globis.ac.jp` or secondary email `massivdev@gmail.com`. You can also fill out the interactive Contact form on his portfolio, or connect/follow him on his active platform channels:
+- **LinkedIn**: [Budi Prasetyo on LinkedIn](https://www.linkedin.com/in/budi-prst/) (Professional updates, MBA network, enterprise AI-DX)
+- **GitHub**: [budiprst on GitHub](https://github.com/budiprst/) (Open-source systems, WebGL widgets, code architectures)
+- **Instagram**: [@budi_prst on Instagram](https://instagram.com/budi_prst) (Visual creative snippets, student life in Tokyo, travel highlights)
+- **Facebook**: [cygnuslife on Facebook](https://www.facebook.com/cygnuslife/) (Personal updates and deep network connections)
 

@@ -64,5 +64,6 @@ Business practitioner and IT Professional with 13+ years of professional work ex
 - **Phone**: +080-57171416
 - **LinkedIn**: https://www.linkedin.com/in/budi-prst/
 - **GitHub**: https://github.com/budiprst/
+- **Instagram**: https://instagram.com/budi_prst
 - **Facebook**: https://www.facebook.com/cygnuslife/
 
