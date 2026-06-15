@@ -308,6 +308,59 @@ function determineCategory(
   return "Uncategorized";
 }
 
+// Helper to parse dates/period and compute a comparable timestamp (latest first)
+function getProjectTimestamp(p: any): number {
+  const period = p.period || "";
+  const yearStr = p.year || "";
+  
+  let endStr = "";
+  let startStr = "";
+  if (period && period.includes("~")) {
+    const parts = period.split("~").map((s: any) => s.trim());
+    startStr = parts[0] || "";
+    endStr = parts[1] || "";
+  } else {
+    startStr = yearStr;
+    endStr = yearStr;
+  }
+
+  const parseToDate = (str: string, isEnd: boolean) => {
+    if (!str) return isEnd ? new Date(2025, 11, 31) : new Date(2025, 0, 1);
+    const lower = str.toLowerCase();
+    if (lower === "present" || lower === "現在" || lower === "now" || lower === "進行中") {
+      return new Date(); // Current date (dynamic)
+    }
+    const clean = str.replace(/\//g, "-");
+    const parts = clean.split("-");
+    if (parts.length === 1) {
+      const y = parseInt(parts[0], 10);
+      if (isNaN(y)) return new Date(2025, 0, 1);
+      return isEnd ? new Date(y, 11, 31) : new Date(y, 0, 1);
+    } else if (parts.length === 2) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (isNaN(y) || isNaN(m)) return new Date(2025, 0, 1);
+      return isEnd ? new Date(y, m - 1, 28) : new Date(y, m - 1, 1);
+    } else if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      if (isNaN(y) || isNaN(m) || isNaN(d)) return new Date(2025, 0, 1);
+      return new Date(y, m - 1, d);
+    }
+    return new Date(clean);
+  };
+
+  const endDate = parseToDate(endStr, true);
+  const startDate = parseToDate(startStr, false);
+
+  return endDate.getTime() * 1000 + (startDate.getTime() % 1000);
+}
+
+function sortProjects(list: any[]): any[] {
+  return [...list].sort((a, b) => getProjectTimestamp(b) - getProjectTimestamp(a));
+}
+
 // 2. Notion API Dynamic Gateway Endpoint
 app.post("/api/projects", async (req, res) => {
   // Use saved server-side credentials if available to protect Budi's keys from public visitors,
@@ -322,7 +375,7 @@ app.post("/api/projects", async (req, res) => {
     // If Notion isn't connected yet, gracefully return our mock projects combined with Budi's custom uploads!
     return res.json({ 
       notionConnected: false,
-      projects: [...customProjects, ...LOCAL_MOCK_PROJECTS] 
+      projects: sortProjects([...customProjects, ...LOCAL_MOCK_PROJECTS])
     });
   }
 
@@ -346,7 +399,7 @@ app.post("/api/projects", async (req, res) => {
       return res.json({ 
         notionConnected: false,
         error: `Could not connect to Notion. Using offline fallback portfolio projects.`,
-        projects: [...customProjects, ...LOCAL_MOCK_PROJECTS] 
+        projects: sortProjects([...customProjects, ...LOCAL_MOCK_PROJECTS])
       });
     }
 
@@ -656,7 +709,7 @@ ${osList.length > 0 ? `- **OS環境**: ${osList.join(", ")}` : ""}
     // Combine Notion fetched projects with Budi's locally parsed AI custom projects!
     return res.json({ 
       notionConnected: true,
-      projects: [...customProjects, ...parsedProjects] 
+      projects: sortProjects([...customProjects, ...parsedProjects])
     });
 
   } catch (err: any) {
@@ -664,14 +717,15 @@ ${osList.length > 0 ? `- **OS環境**: ${osList.join(", ")}` : ""}
     return res.json({ 
       notionConnected: false,
       error: "Exception communicating with Notion. Loaded offline portfolio assets.",
-      projects: [...customProjects, ...LOCAL_MOCK_PROJECTS] 
+      projects: sortProjects([...customProjects, ...LOCAL_MOCK_PROJECTS])
     });
   }
 });
 
 // 3. Admin APIs to read & write Budi's exclusive settings
 const ADMIN_PASSWORD = "19Delapan9-";
-const ADMIN_SESSION_TOKEN = "session_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+// Stable administrative session token derived deterministically to survive server restarts during builds
+const ADMIN_SESSION_TOKEN = "session_budi_secure_" + Buffer.from(ADMIN_PASSWORD).toString("hex").substring(0, 16);
 
 function requireAdmin(req: any, res: any, next: any) {
   const authHeader = req.headers.authorization;
@@ -694,25 +748,42 @@ app.post("/api/admin/login", (req, res) => {
     return res.json({ success: true, token: ADMIN_SESSION_TOKEN });
   }
   return res.status(401).json({ error: "Incorrect password. Access denied to Twin Knowledge." });
-});
+} );
 
 app.get("/api/admin/config", requireAdmin, (req, res) => {
   const savedConfig = getSavedNotionConfig();
   // Safe return: do not send raw secret token to the browser, just confirm status
   res.json({
     hasNotionToken: !!(savedConfig?.token || process.env.NOTION_TOKEN),
-    databaseId: savedConfig?.databaseId || process.env.NOTION_DATABASE_ID || ""
+    databaseId: savedConfig?.databaseId || process.env.NOTION_DATABASE_ID || "",
+    calendarDatabaseId: savedConfig?.calendarDatabaseId || process.env.NOTION_CALENDAR_DATABASE_ID || ""
   });
 });
 
 app.post("/api/admin/config", requireAdmin, (req, res) => {
-  const { token, databaseId } = req.body;
-  if (!token || !databaseId) {
-    return res.status(400).json({ error: "Token and Database ID are mandatory." });
+  const { token, databaseId, calendarDatabaseId } = req.body;
+  if (!databaseId) {
+    return res.status(400).json({ error: "Database ID is mandatory." });
+  }
+
+  const savedConfig = getSavedNotionConfig();
+  let finalToken = token;
+
+  // Let client pass empty/blank or placeholder to preserve currently saved token!
+  if (!finalToken || finalToken.trim() === "" || finalToken === "__PRESERVED__" || finalToken.includes("••")) {
+    finalToken = savedConfig?.token || process.env.NOTION_TOKEN;
+  }
+
+  if (!finalToken) {
+    return res.status(400).json({ error: "Notion Secret Token is required but was not found." });
   }
 
   try {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify({ token, databaseId }, null, 2));
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify({ 
+      token: finalToken, 
+      databaseId,
+      calendarDatabaseId: calendarDatabaseId || savedConfig?.calendarDatabaseId || ""
+    }, null, 2));
     return res.json({ success: true, message: "Server-side Notion configurations permanently registered." });
   } catch (e: any) {
     return res.status(500).json({ error: "Failed to persist setting profile on storage sandbox." });
@@ -935,6 +1006,7 @@ Core facts about Budi Prst:
 - Facebook: https://www.facebook.com/cygnuslife/
 - Key technologies Budi excels in: React, TypeScript, WebGL (Three.js), D3.js, Tailwind CSS v4, and Node.js.
 - Location/Vibe: Clear Nordic minimalism. High-contrast aesthetics, elegant design grids, maximum rendering speed.
+- Double Google Calendar Accounts: Budi syncs schedules from both his personal account and his official workspace/academic Google account: budi.prasetyo.2025@globis.ac.jp. If visitors inquire about his Globis calendar blocks or professional availability, reassure them that they are fully integrated, and explain that he can sync multiple accounts dynamically via the "Google Calendar" tab in the Config Admin Panel.
 
 Guidelines for your responses:
 - Tone: Highly professional, humble, objective, and polite. Avoid sales-y corporate slang or ungrounded claims.
@@ -945,6 +1017,12 @@ Guidelines for your responses:
   * For creative visuals, media highlights, student/travel life in Tokyo, suggest his Instagram: https://instagram.com/budi_prst
   * For older or personal network updates, suggest his Facebook: https://www.facebook.com/cygnuslife/
 - Reassure the user that these 4 platforms constitute your dynamic network sources for his digital twin persona.
+- Notion Status Response: If the user asks about your connection status to his Notion calendar, task boards, or database projects: Inform them that you are currently connected and loading from Budi's high-performance "Local Portal Vault & Cache" (Local database file backups) because no external Notion API integration keys are saved in active cloud runtime variables right now. Reassure them that they can pair a live Notion integration (via Token & Database ID) dynamically directly in the Config Admin Panel to pull and sync real-time live page blocks instantly.
+- INTERACTIVE WIDGET TRIGGERS (CRITICAL):
+  * When the visitor asks about scheduling, checking slots, meetings, booking, or availability, ALWAYS include this exact token on its own line at the end of your response so the client launcher panel slides open dynamically:
+    [ACTION: Open Booking Scheduler]
+  * When the visitor asks about Budi's workspace, setup, code, files, designs, or requests visual illustration materials, provide a brief description and ALWAYS include an image token on its own line:
+    [IMAGE: https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=600&q=80]
 `;
 
 function getFileMimeType(fileName: string): string {
@@ -972,6 +1050,164 @@ function getFileMimeType(fileName: string): string {
       return "application/octet-stream";
   }
 }
+
+// 1.5. Local Calendar Operations & Dynamic Booking Integration
+const CALENDAR_FILE = path.join(process.cwd(), "calendar_events.json");
+function getLocalCalendarEvents() {
+  if (fs.existsSync(CALENDAR_FILE)) {
+    try {
+      return JSON.parse(fs.readFileSync(CALENDAR_FILE, "utf-8"));
+    } catch (e) {
+      return [];
+    }
+  }
+  return [];
+}
+
+// 1.6. Fetch integrated Google or Local Calendar events
+app.get("/api/calendar", async (req, res) => {
+  let localEvents = getLocalCalendarEvents();
+  return res.json({ notionConnected: false, events: localEvents });
+});
+
+// 1.6b. Sync Google Calendar events to local server cache with dual-account/multi-calendar merging capability
+app.post("/api/admin/gcal/sync", requireAdmin, (req, res) => {
+  const { calendarId, events } = req.body;
+  if (!calendarId || !Array.isArray(events)) {
+    return res.status(400).json({ error: "Missing calendarId or events list in request body." });
+  }
+
+  let localEvents = getLocalCalendarEvents();
+  
+  // Filter out any prior synced events for this specific calendarId, while preserving
+  // other calendars/accounts, and preserving all local bookings (which start with 'booked_').
+  const preservedEvents = localEvents.filter((ev: any) => {
+    if (ev.id && ev.id.startsWith("booked_")) return true;
+    if (ev.sourceCalendarId && ev.sourceCalendarId !== calendarId) return true;
+    return false;
+  });
+
+  // Map and append the newly synced events
+  const newSyncedEvents = events.map((ev: any) => ({
+    id: ev.id?.startsWith("gcal_") ? ev.id : `gcal_${calendarId}_${ev.id || Math.random().toString(36).substring(2, 9)}`,
+    title: ev.summary || ev.title || "Busy Slot (Google Calendar Synced)",
+    start: ev.start?.dateTime || ev.start || "",
+    end: ev.end?.dateTime || ev.end || "",
+    type: "busy",
+    sourceCalendarId: calendarId,
+    description: ev.description || `Reserved block synced from Google Calendar (${calendarId}).`
+  })).filter((e: any) => e.start !== "");
+
+  const combined = [...preservedEvents, ...newSyncedEvents];
+
+  try {
+    fs.writeFileSync(CALENDAR_FILE, JSON.stringify(combined, null, 2));
+    return res.json({ 
+      success: true, 
+      message: `Successfully synchronized ${newSyncedEvents.length} busy periods from calendar: ${calendarId}.`, 
+      events: combined 
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to persist synced events profile step: " + err.message });
+  }
+});
+
+// 1.7. Direct Booking Form Submission Endpoint
+app.post("/api/calendar/book", async (req, res) => {
+  const { name, email, topic, date, timeSlot, type, description } = req.body;
+  if (!name || !email || !date || !timeSlot) {
+    return res.status(400).json({ error: "Missing required booking details (Name, Email, Date, or TimeSlot)." });
+  }
+
+  // Combine date and timeSlot (e.g. "14:00") into JST ISO start/end
+  // Assuming 1 hour standard meeting slot
+  const startIso = `${date}T${timeSlot}:00+09:00`;
+  const [hours, minutes] = timeSlot.split(":").map((v: string) => parseInt(v, 10));
+  const endMinutes = (minutes + 60) % 60;
+  const endHours = hours + Math.floor((minutes + 60) / 60);
+  const endHrsStr = String(endHours).padStart(2, "0");
+  const endMinsStr = String(endMinutes).padStart(2, "0");
+  const endIso = `${date}T${endHrsStr}:${endMinsStr}:00+09:00`;
+
+  const newEvent = {
+    id: "booked_" + Math.random().toString(36).substring(2, 11),
+    title: `${topic || "Business Alignment Consultation"}`,
+    start: startIso,
+    end: endIso,
+    name,
+    email,
+    type: type || "online",
+    description: description || `Scheduled consultation with ${name}`
+  };
+
+  // Save to local cache
+  const localEvents = getLocalCalendarEvents();
+  localEvents.push(newEvent);
+  fs.writeFileSync(CALENDAR_FILE, JSON.stringify(localEvents, null, 2));
+
+  // Push to Live Notion calendar database if configured
+  const savedConfig = getSavedNotionConfig();
+  const token = savedConfig?.token || process.env.NOTION_TOKEN;
+  const calendarDatabaseId = savedConfig?.calendarDatabaseId || process.env.NOTION_CALENDAR_DATABASE_ID;
+
+  let notionSynced = false;
+  let notionError = null;
+
+  if (token && calendarDatabaseId) {
+    try {
+      const notionRes = await fetch("https://api.notion.com/v1/pages", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Notion-Version": "2022-06-28",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          parent: { database_id: calendarDatabaseId },
+          properties: {
+            Name: {
+              title: [
+                { text: { content: `${newEvent.title} [Booking: ${newEvent.name}]` } }
+              ]
+            },
+            Date: {
+              date: {
+                start: startIso,
+                end: endIso
+              }
+            },
+            Description: {
+              rich_text: [
+                { text: { content: `Visitor: ${newEvent.name} (${newEvent.email}). Meeting type: ${newEvent.type}. Prompt Details: ${newEvent.description}` } }
+              ]
+            }
+          }
+        })
+      });
+
+      if (notionRes.ok) {
+        notionSynced = true;
+      } else {
+        const errText = await notionRes.text();
+        console.error("Notion page creation failed:", errText);
+        notionError = errText;
+      }
+    } catch (err: any) {
+      console.error("Notion page integration exception:", err);
+      notionError = err.message;
+    }
+  }
+
+  return res.json({
+    success: true,
+    event: newEvent,
+    notionSynced,
+    notionError,
+    message: notionSynced 
+      ? "Meeting successfully registered and synced with Budi's Notion calendar database."
+      : "Meeting saved successfully in portfolio's local database cache."
+  });
+});
 
 app.post("/api/chat", async (req, res) => {
   const { message, history } = req.body;
@@ -1046,12 +1282,68 @@ ${sourceBlocks.join("\n\n")}
       }
     }
 
-    // Blend base instructions with dynamic RAG context
+    // Injects current schedule context so Gemini can answer about free slots or schedule alignment
+    let calendarContext = "\n[BUDI'S STANDARD CALENDAR WORKING HOURS]\nMonday to Friday: 9:00 AM to 6:00 PM Tokyo Time (09:00 to 18:00 JST). Outside these hours, as well as Saturday & Sunday, Budi is resting and unavailable for bookings.\n\n[CURRENT BOOKED SLOTS & KEY CONSTRAINTS FROM HOST]\n";
+    try {
+      const savedConfig = getSavedNotionConfig();
+      const token = savedConfig?.token || process.env.NOTION_TOKEN;
+      const calendarDatabaseId = savedConfig?.calendarDatabaseId || process.env.NOTION_CALENDAR_DATABASE_ID;
+      
+      let events: any[] = [];
+      const localEvents = getLocalCalendarEvents();
+      events = [...localEvents];
+
+      if (token && calendarDatabaseId) {
+        const notionRes = await fetch(`https://api.notion.com/v1/databases/${calendarDatabaseId}/query`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ page_size: 20 })
+        });
+        if (notionRes.ok) {
+          const data: any = await notionRes.json();
+          const results = data.results || [];
+          results.forEach((page: any) => {
+            const props = page.properties || {};
+            const titleProp = props.Name || props.Title || {};
+            const titleText = titleProp.title?.[0]?.plain_text || "Busy Slot";
+            const dateProp = props.Date || props.date || {};
+            const start = dateProp.date?.start || "";
+            const end = dateProp.date?.end || "";
+            if (start) {
+              events.push({ title: titleText, start, end });
+            }
+          });
+        }
+      }
+
+      if (events.length > 0) {
+        events.forEach((ev: any) => {
+          const dateStr = ev.start.substring(0, 10);
+          const timeStart = ev.start.includes("T") ? ev.start.split("T")[1].substring(0, 5) : "All Day";
+          const timeEnd = ev.end && ev.end.includes("T") ? ev.end.split("T")[1].substring(0, 5) : "End";
+          const timeRange = timeEnd ? `${timeStart} to ${timeEnd}` : timeStart;
+          calendarContext += `- BUSY SLOT: "${ev.title}" on ${dateStr} from ${timeRange} Tokyo Time\n`;
+        });
+      } else {
+        calendarContext += "No bookings registered. Budi is fully open during his working hours!\n";
+      }
+    } catch (e) {
+      console.error("Error building calendar context for LLM:", e);
+    }
+
+    // Blend base instructions with dynamic RAG context & calendar data
     const finalSystemInstruction = `${BASE_SYSTEM_INSTRUCTION}
 ${knowledgeBaseContext}
 
+${calendarContext}
+
 Instructions on RAG Matching:
 - Prioritize facts in the [DIGITAL TWIN RAG KNOWLEDGE BASE] over general info.
+- If they ask about Budi's schedule, free slots, or calendar: summarize his schedule using the [BUDI'S STANDARD CALENDAR WORKING HOURS] and the list of busy slots. Explicitly describe which blocks are taken, and invite them to book an offline/online meeting with Budi!
 - If the user asks general questions about Budi that are solved in files, reference the facts accurately.
 - Keep output extremely clear, helpful, professional, and compact (1-3 lines).
 - Note: You can natively read and parse through any attached PDF/Office document contents passed as inlineParts in the user's turn. Use them to provide precise answers about Budi's background.

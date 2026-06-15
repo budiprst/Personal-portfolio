@@ -22,8 +22,11 @@ import {
   Clock,
   ArrowRight,
   Code,
-  LogOut
+  LogOut,
+  Calendar,
+  Check
 } from "lucide-react";
+import { googleSignIn, logOutOwner, auth } from "../firebase";
 
 interface KnowledgeFile {
   name: string;
@@ -66,11 +69,13 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
   const [sandboxTyping, setSandboxTyping] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // Notion Settings (Direct access - removed owner login)
-  const [notionDatabaseId, setNotionDatabaseId] = useState("");
-  const [notionToken, setNotionToken] = useState("");
-  const [savingNotion, setSavingNotion] = useState(false);
-  const [notionStatus, setNotionStatus] = useState<any>(null);
+  // Google Calendar Integration states
+  const [googleUser, setGoogleUser] = useState<any>(null);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
+  const [googleCalendars, setGoogleCalendars] = useState<any[]>([]);
+  const [selectedCalendars, setSelectedCalendars] = useState<string[]>([]);
+  const [fetchingCalendars, setFetchingCalendars] = useState(false);
+  const [syncingGoogle, setSyncingGoogle] = useState(false);
 
   // Announcements (Direct access)
   const [announcementText, setAnnouncementText] = useState("");
@@ -78,7 +83,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
   const [recentAnnouncements, setRecentAnnouncements] = useState<any[]>([]);
 
   // Selection of creator tabs
-  const [activeEditorTab, setActiveEditorTab] = useState<"create" | "notion" | "announcement">("create");
+  const [activeEditorTab, setActiveEditorTab] = useState<"create" | "gcal" | "announcement">("create");
 
   // Load session token on mount
   useEffect(() => {
@@ -191,18 +196,7 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
   };
 
   const fetchConfig = async () => {
-    try {
-      const res = await fetchWithAuth("/api/admin/config");
-      if (res.ok) {
-        const data = await res.json();
-        setNotionStatus(data);
-        if (data.databaseId) {
-          setNotionDatabaseId(data.databaseId);
-        }
-      }
-    } catch (e) {
-      console.error("Config fetch exception:", e);
-    }
+    // Notion config is deprecated in favor of secure client-side synced Google Calendar
   };
 
   const fetchAnnouncements = async () => {
@@ -408,31 +402,107 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
     }
   };
 
-  // Notion credentials submission
-  const handleSaveNotion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!notionToken || !notionDatabaseId) {
-      showStatus("error", "Secret Token & Database ID are required properties.");
-      return;
-    }
-    setSavingNotion(true);
+  // Google Calendar Connection & Syncing
+  const handleGoogleConnect = async () => {
+    setFetchingCalendars(true);
     try {
-      const res = await fetchWithAuth("/api/admin/config", {
-        method: "POST",
-        body: JSON.stringify({ token: notionToken, databaseId: notionDatabaseId })
-      });
-      if (res.ok) {
-        showStatus("success", "Notion portfolio links updated successfully.");
-        setNotionToken("");
-        fetchConfig();
-        onRefreshProjects();
-      } else {
-        showStatus("error", "Failed to lock in portfolio config.");
+      const result = await googleSignIn();
+      if (result) {
+        setGoogleUser(result.user);
+        setGoogleAccessToken(result.accessToken);
+        showStatus("success", `Google account connected: ${result.user.email}`);
+
+        // Fetch the list of calendars
+        const resList = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
+          headers: { "Authorization": `Bearer ${result.accessToken}` }
+        });
+        if (resList.ok) {
+          const data = await resList.json();
+          const items = data.items || [];
+          setGoogleCalendars(items);
+          // Auto-select primary calendar
+          const primary = items.find((c: any) => c.primary) || items[0];
+          if (primary) {
+            setSelectedCalendars([primary.id]);
+          }
+        } else {
+          showStatus("error", "Authenticated with Google, but failed to retrieve calendar index.");
+        }
       }
     } catch (err: any) {
-      showStatus("error", err.message);
+      showStatus("error", "Google auth connection failed: " + err.message);
     } finally {
-      setSavingNotion(false);
+      setFetchingCalendars(false);
+    }
+  };
+
+  const handleGoogleDisconnect = async () => {
+    try {
+      await logOutOwner();
+      setGoogleUser(null);
+      setGoogleAccessToken(null);
+      setGoogleCalendars([]);
+      setSelectedCalendars([]);
+      showStatus("success", "Google session cleared safely from client memory.");
+    } catch (err: any) {
+      showStatus("error", "Disconnect exception: " + err.message);
+    }
+  };
+
+  const handleSyncGoogleCalendar = async () => {
+    if (!googleAccessToken || selectedCalendars.length === 0) {
+      showStatus("error", "Please connect to Google first and choose at least one calendar database node.");
+      return;
+    }
+
+    setSyncingGoogle(true);
+    let totalSynced = 0;
+    let errorOccured = false;
+
+    try {
+      for (const calendarId of selectedCalendars) {
+        const nowIso = new Date().toISOString();
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?maxResults=100&timeMin=${nowIso}&singleEvents=true&orderBy=startTime`;
+        const res = await fetch(url, {
+          headers: { "Authorization": `Bearer ${googleAccessToken}` }
+        });
+
+        if (!res.ok) {
+          console.error(`Failed to fetch events for: ${calendarId}`);
+          errorOccured = true;
+          continue;
+        }
+
+        const data = await res.json();
+        const items = data.items || [];
+        
+        // POST events directly to the express backup vault
+        const syncRes = await fetchWithAuth("/api/admin/gcal/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            calendarId,
+            events: items
+          })
+        });
+
+        if (syncRes.ok) {
+          totalSynced += items.length;
+        } else {
+          errorOccured = true;
+        }
+      }
+
+      if (errorOccured) {
+        showStatus("error", `Sync partially completed. Synced ${totalSynced} events.`);
+      } else {
+        showStatus("success", `${totalSynced} busy blocks successfully imported and synchronized in local RAG portfolio calendar.`);
+        onRefreshProjects();
+      }
+    } catch (err: any) {
+      showStatus("error", "Google sync request failed: " + err.message);
+    } finally {
+      setSyncingGoogle(false);
     }
   };
 
@@ -729,13 +799,13 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
                   Add File
                 </button>
                 <button
-                  onClick={() => setActiveEditorTab("notion")}
+                  onClick={() => setActiveEditorTab("gcal")}
                   className={`py-2.5 border-r border-[#2d3139] font-semibold flex items-center justify-center gap-1.5 ${
-                    activeEditorTab === "notion" ? "text-sky-400 bg-[#121417]" : "text-gray-400 hover:text-white"
+                    activeEditorTab === "gcal" ? "text-blue-400 bg-[#121417]" : "text-gray-400 hover:text-white"
                   }`}
                 >
-                  <Code className="w-3.5 h-3.5" />
-                  Notion
+                  <Calendar className="w-3.5 h-3.5" />
+                  Google Calendar
                 </button>
                 <button
                   onClick={() => setActiveEditorTab("announcement")}
@@ -782,41 +852,98 @@ export default function AdminPanel({ onClose, onRefreshProjects }: AdminPanelPro
                   </div>
                 )}
 
-                {activeEditorTab === "notion" && (
-                  <form onSubmit={handleSaveNotion} className="space-y-3">
+                {activeEditorTab === "gcal" && (
+                  <div className="space-y-3.5">
                     <p className="text-[10.5px] text-[#a0aab4] font-sans leading-relaxed">
-                      Sync projects from Notion to the portfolio gallery directly.
+                      Sync calendar blocks live. Disconnect & switch accounts easily if you have multiple Google Calendar accounts.
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[8px] uppercase font-mono text-gray-400 mb-0.5">Notion Token</label>
-                        <input 
-                          type="password"
-                          placeholder="secret_..."
-                          value={notionToken}
-                          onChange={(e) => setNotionToken(e.target.value)}
-                          className="w-full text-xs font-mono bg-[#0c0d0e] border border-[#2d3139] rounded px-2.5 py-1.5 text-white placeholder-gray-750 focus:outline-none focus:border-sky-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[8px] uppercase font-mono text-gray-400 mb-0.5">Database UUID</label>
-                        <input 
-                          type="text"
-                          placeholder="e.g. 1a2b..."
-                          value={notionDatabaseId}
-                          onChange={(e) => setNotionDatabaseId(e.target.value)}
-                          className="w-full text-xs font-mono bg-[#0c0d0e] border border-[#2d3139] rounded px-2.5 py-1.5 text-white placeholder-gray-750 focus:outline-none focus:border-sky-500"
-                        />
-                      </div>
+
+                    <div className="p-3 bg-blue-950/20 border border-blue-500/25 rounded-xl text-[10px] text-blue-300 font-sans space-y-1">
+                      <p className="font-bold flex items-center gap-1 text-white">
+                        <span>🎓 GLOBIS.AC.JP & WORKSPACE SUPPORT</span>
+                      </p>
+                      <p className="leading-snug">
+                        To sync Budi's official Google account <span className="text-amber-400 font-bold">budi.prasetyo.2025@globis.ac.jp</span>, simply click "Connect" below and sign into that Google/Workspace account.
+                      </p>
+                      <p className="leading-snug text-[9.5px] text-[#a0aab4]">
+                        You can sync multiple accounts in succession (e.g. personal & Globis). Synced busy slots are merged in dynamic cache automatically!
+                      </p>
                     </div>
-                    <button
-                      type="submit"
-                      disabled={savingNotion}
-                      className="w-full text-xs font-mono font-semibold text-white bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/15 rounded-lg py-1.5 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      {savingNotion ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Link Notion Db"}
-                    </button>
-                  </form>
+
+                    {!googleUser ? (
+                      <button
+                        onClick={handleGoogleConnect}
+                        disabled={fetchingCalendars}
+                        className="w-full text-xs font-mono font-semibold text-white bg-blue-600 hover:bg-blue-500 py-2 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:scale-100 disabled:opacity-50"
+                      >
+                        {fetchingCalendars ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Calendar className="w-3.5 h-3.5" />
+                        )}
+                        <span>Connect Budi's Google Calendar</span>
+                      </button>
+                    ) : (
+                      <div className="space-y-3 bg-[#0c0d0e]/65 border border-[#2d3139] p-3 rounded-lg">
+                        <div className="flex items-center justify-between pb-2 border-b border-[#2d3139]">
+                          <div>
+                            <span className="block text-[8px] uppercase font-mono text-gray-500">Connected Account</span>
+                            <span className="block text-xs font-semibold text-white truncate max-w-[180px]">{googleUser.email}</span>
+                          </div>
+                          <button
+                            onClick={handleGoogleDisconnect}
+                            className="text-[9px] font-mono text-red-400 bg-red-950/20 hover:bg-red-950/40 border border-red-500/35 px-2 py-1 rounded transition-colors cursor-pointer"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+
+                        <div>
+                          <span className="block text-[9px] uppercase font-mono text-gray-400 mb-1 font-bold">Select Calendars to Sync</span>
+                          {googleCalendars.length === 0 ? (
+                            <span className="text-[10px] text-gray-500 italic block">No accessible calendars found.</span>
+                          ) : (
+                            <div className="max-h-[110px] overflow-y-auto space-y-1.5 pr-1.5">
+                              {googleCalendars.map((cal) => (
+                                <label key={cal.id} className="flex items-center gap-2 cursor-pointer py-0.5 hover:bg-neutral-900 px-1 rounded transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedCalendars.includes(cal.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedCalendars(prev => [...prev, cal.id]);
+                                      } else {
+                                        setSelectedCalendars(prev => prev.filter(id => id !== cal.id));
+                                      }
+                                    }}
+                                    className="rounded border-gray-600 bg-black text-blue-500 focus:ring-0 focus:ring-offset-0"
+                                  />
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cal.backgroundColor || '#2563eb' }} />
+                                    <span className="text-[10.5px] text-gray-300 truncate font-mono">{cal.summary}</span>
+                                    {cal.primary && <span className="text-[8px] font-mono bg-blue-500/20 text-blue-300 px-1 rounded shrink-0">PRIMARY</span>}
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={handleSyncGoogleCalendar}
+                          disabled={syncingGoogle || selectedCalendars.length === 0}
+                          className="w-full text-xs font-mono font-semibold text-white bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all disabled:opacity-40"
+                        >
+                          {syncingGoogle ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                          <span>Sync Busy Slots (Merge Mode)</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {activeEditorTab === "announcement" && (
