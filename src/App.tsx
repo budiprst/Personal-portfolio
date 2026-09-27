@@ -27,7 +27,10 @@ import {
   Clock,
   MapPin,
   Video,
-  Loader2
+  Loader2,
+  Copy,
+  Check,
+  ExternalLink
 } from "lucide-react";
 import { Project } from "./types";
 import { DEFAULT_PROJECTS } from "./data";
@@ -128,6 +131,39 @@ export default function App() {
   const [bookingDesc, setBookingDesc] = useState("");
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [bookingFeedback, setBookingFeedback] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleDownloadVCard = () => {
+    const vcard = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      "N:Prasetyo;Budi;;;",
+      "FN:Budi Prasetyo",
+      "ORG:Globis University / AI-DX Solutions",
+      "TITLE:AI-DX Transformation Specialist & Partnership Lead",
+      "EMAIL;TYPE=PREF,INTERNET:budi.prasetyo.2025@globis.ac.jp",
+      "TEL;TYPE=WORK,VOICE:+818000000000",
+      "ADR;TYPE=WORK:;;Tokyo;;;Japan",
+      "URL:https://github.com/budiprst/",
+      "NOTE:13+ years bridging business leadership and IT infrastructure. MBA Candidate (Globis) & CS Graduate.",
+      "END:VCARD"
+    ].join("\n");
+
+    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Budi_Prasetyo.vcf");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText("budi.prasetyo.2025@globis.ac.jp");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const fetchCalendar = async () => {
     setFetchingCalendar(true);
@@ -412,6 +448,159 @@ export default function App() {
           <div className="w-px h-full bg-[#f1f1f1]" style={{ transform: `translateY(${scrollY * 0.05}px)` }} />
         </div>
       </div>
+
+      {/* Mobile-only Premium Tactile Business Card Viewport */}
+      <section className="relative h-[100dvh] w-full flex flex-col items-center justify-center bg-[#fafafa] px-4 py-8 overflow-hidden md:hidden z-40 select-none border-b border-[#f1f1f1] shrink-0">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+          <div className="absolute top-[-10%] right-[-20%] w-[250px] h-[250px] rounded-full bg-amber-100/40 blur-3xl" />
+          <div className="absolute bottom-[-10%] left-[-20%] w-[250px] h-[250px] rounded-full bg-neutral-200/50 blur-3xl" />
+        </div>
+
+        <div className="w-full max-w-[328px] bg-white border border-[#e2e2e2] rounded-2xl p-6 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.06)] flex flex-col justify-between relative overflow-hidden z-10">
+          {/* Top Brand Block */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img 
+                src={bpLogo} 
+                alt="B.P Logo" 
+                className="w-7 h-7 object-contain select-none" 
+                referrerPolicy="no-referrer"
+              />
+              <span className="font-mono text-[9px] font-bold tracking-[0.25em] text-neutral-800 uppercase">
+                Budi Prasetyo
+              </span>
+            </div>
+            <div className="flex items-center gap-1 bg-neutral-100 px-2 py-0.5 rounded border border-neutral-200/50 font-mono text-[8px] text-amber-600 font-extrabold uppercase tracking-wider">
+              <Sparkles size={8} className="animate-pulse" />
+              <span>AI-DX</span>
+            </div>
+          </div>
+
+          {/* Content Profile Block */}
+          <div className="my-8 space-y-4">
+            <div>
+              <h2 className="font-sans text-3xl font-black text-neutral-900 tracking-tight leading-none mb-1">
+                Budi Prasetyo
+              </h2>
+              <p className="text-amber-600 font-mono text-[9.5px] uppercase tracking-widest font-extrabold leading-tight">
+                {t.headerTagline}
+              </p>
+            </div>
+
+            <div className="w-10 h-px bg-amber-500/50" />
+
+            <p className="text-gray-600 text-[11px] leading-relaxed font-sans font-normal">
+              {activeLang === 'ja' 
+                ? "一橋大学/グロービスMBA候補生 ＆ CS学士。IT基盤とビジネス経営を繋ぐ13年以上の実績。最先端AI技術を統合し測定可能な価値へ変革します。" 
+                : "CS Graduate & MBA Candidate (Globis). 13+ years bridging business leadership & IT infrastructure. Integrating advanced AI to drive measurable value transformation."}
+            </p>
+
+            {/* Unboxed Metadata row */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[10px] font-mono text-gray-500 border-t border-gray-100 pt-4">
+              <span className="flex items-center gap-1 text-gray-700">
+                <MapPin size={10} className="text-amber-600" />
+                <span>Tokyo, Japan</span>
+              </span>
+              <span className="text-gray-300">·</span>
+              <span className="text-gray-700">JST (GMT+9)</span>
+            </div>
+
+            {/* Interactive Email Section with Copy */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between bg-[#f9fafb] border border-gray-200 p-2.5 rounded-xl text-[10px] font-mono text-gray-750">
+                <a href="mailto:budi.prasetyo.2025@globis.ac.jp" className="hover:text-amber-600 transition-colors truncate pr-2 flex items-center gap-1.5">
+                  <Mail size={11} className="text-amber-600 shrink-0" />
+                  <span className="truncate">budi.prasetyo.2025@globis.ac.jp</span>
+                </a>
+                <button 
+                  type="button"
+                  onClick={handleCopyEmail}
+                  className="p-1 hover:bg-gray-100 rounded text-gray-450 hover:text-neutral-900 transition-all shrink-0 cursor-pointer"
+                  title="Copy Email"
+                >
+                  {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Platform Links & Action CTAs */}
+          <div className="space-y-4">
+            {/* 4 Social Buttons (Bigger, clickable circles with premium hover effects) */}
+            <div className="flex items-center justify-center gap-4 py-2 border-t border-gray-100">
+              <a 
+                href="https://github.com/budiprst/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="p-2.5 bg-neutral-100 hover:bg-neutral-900 text-gray-500 hover:text-white rounded-full transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center border border-gray-200/50"
+                title="GitHub"
+              >
+                <Github size={16} />
+              </a>
+              <a 
+                href="https://www.linkedin.com/in/budi-prst/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="p-2.5 bg-neutral-100 hover:bg-neutral-900 text-gray-500 hover:text-white rounded-full transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center border border-gray-200/50"
+                title="LinkedIn"
+              >
+                <Linkedin size={16} />
+              </a>
+              <a 
+                href="https://instagram.com/budi_prst" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="p-2.5 bg-neutral-100 hover:bg-neutral-900 text-gray-500 hover:text-white rounded-full transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center border border-gray-200/50"
+                title="Instagram"
+              >
+                <Instagram size={16} />
+              </a>
+              <a 
+                href="https://www.facebook.com/cygnuslife/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="p-2.5 bg-neutral-100 hover:bg-neutral-900 text-gray-500 hover:text-white rounded-full transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center border border-gray-200/50"
+                title="Facebook"
+              >
+                <Facebook size={16} />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadVCard}
+                className="flex items-center justify-center gap-1.5 bg-neutral-900 text-white hover:bg-neutral-800 active:scale-95 font-sans font-semibold text-xs py-2.5 px-3 rounded-xl transition-all cursor-pointer shadow-sm shrink-0 whitespace-nowrap"
+              >
+                <User size={12} />
+                <span>Save Contact</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  const openBtn = document.getElementById("btn-open-assistant-bubble");
+                  if (openBtn) {
+                    openBtn.click();
+                  }
+                }}
+                className="flex items-center justify-center gap-1.5 bg-amber-500 text-white hover:bg-amber-600 active:scale-95 font-sans font-semibold text-xs py-2.5 px-3 rounded-xl transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-sm"
+              >
+                <Sparkles size={12} />
+                <span>Ask Assistant</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Scroll Indicator */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-center animate-bounce select-none pointer-events-none z-10">
+          <span className="font-mono text-[8px] tracking-[0.2em] text-[#6b7280] uppercase font-bold">
+            Scroll to see more
+          </span>
+          <span className="text-gray-500 text-[10px]">↓</span>
+        </div>
+      </section>
 
       {/* Floating Header */}
       <header className="sticky top-0 z-30 bg-[#fafafa]/80 backdrop-blur-md border-b border-[#f1f1f1] px-6 py-4">

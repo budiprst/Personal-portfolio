@@ -51,7 +51,7 @@ export default function AIChatBubble() {
       {
         id: "welcome",
         sender: "assistant",
-        text: "Welcome to Budi's Interactive Portfolio Assistant! I am directly integrated with Budi's dynamic project vaults, professional schedule logs, and technical design documents to help go beyond a standard chatbot. Ask me anything about his business strategy & IT architecture work, custom AI automation, or schedule direct syncs!",
+        text: "Welcome! I am Budi's Knownful Support Assistant, directly integrated with his dynamic project vaults, professional schedule logs, and technical design documents. Ask me anything about his business strategy & IT architecture work, custom AI automation, or professional experience!",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -302,7 +302,7 @@ export default function AIChatBubble() {
             <div className="flex items-center gap-2">
               <Sparkles size={14} className="text-amber-400 animate-pulse" />
               <div>
-                <p className="text-xs font-semibold">Budi's Portfolio Support Assistant</p>
+                <p className="text-xs font-semibold">Knownful Support Assistant</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[9px] font-mono text-neutral-400 tracking-tight">Active Support Assistant</span>
