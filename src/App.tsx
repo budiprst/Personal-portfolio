@@ -761,7 +761,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Elegant Parallax Dual-Card Stack representing Budi's Premium AI-DX Profile & Dual Competence */}
+        {/* Elegant Parallax Card representing Budi's Premium AI-DX Profile */}
         <div 
           className="absolute right-0 top-1/2 -translate-y-1/2 w-[420px] h-[525px] hidden lg:block pointer-events-none select-none"
           style={{ transform: `translateY(${-50 + scrollY * 0.05}px)` }}
@@ -804,112 +804,6 @@ export default function App() {
                   {t.bioCardDesc}
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Foreground Card 2 (INTERACTIVE): Floating Strategy Simulator & Executive Scorecard */}
-          <div 
-            className="absolute left-[-55px] bottom-[-45px] w-[310px] bg-[#121417]/95 backdrop-blur-md border border-[#2d3139] shadow-2xl rounded-2xl p-5 transition-all duration-75 text-white pointer-events-auto"
-            style={{ transform: `rotate(-2deg) translateY(${scrollY * -0.06}px)` }}
-          >
-            <div className="flex items-center justify-between border-b border-[#2d3139] pb-2.5 mb-3">
-              <span className="font-mono text-[9px] uppercase text-[#a0aab4] font-bold tracking-widest flex items-center gap-1">
-                <Cpu size={11} className="text-amber-400" />
-                {t.simTitle}
-              </span>
-              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            </div>
-
-            {/* Stage Selector */}
-            <div className="mb-3.5">
-              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">{t.simScaleLabel}</span>
-              <div className="grid grid-cols-3 gap-1 bg-[#1a1d23] p-1 rounded-lg border border-[#2d3139]">
-                <button
-                  onClick={() => setDxCompanyStage('legacy')}
-                  className={`text-[9px] font-sans font-medium py-1 rounded transition-colors cursor-pointer ${
-                    dxCompanyStage === 'legacy' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t.simLegacy}
-                </button>
-                <button
-                  onClick={() => setDxCompanyStage('growing')}
-                  className={`text-[9px] font-sans font-medium py-1 rounded transition-colors cursor-pointer ${
-                    dxCompanyStage === 'growing' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t.simGrowing}
-                </button>
-                <button
-                  onClick={() => setDxCompanyStage('enterprise')}
-                  className={`text-[9px] font-sans font-medium py-1 rounded transition-colors cursor-pointer ${
-                    dxCompanyStage === 'enterprise' ? 'bg-[#2a2f38] text-white font-bold' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t.simEnterprise}
-                </button>
-              </div>
-            </div>
-
-            {/* Focus Target */}
-            <div className="mb-3.5">
-              <span className="block text-[8px] font-mono text-gray-400 uppercase tracking-widest mb-1.5">{t.simTargetLabel}</span>
-              <div className="grid grid-cols-3 gap-1 bg-[#1a1d23] p-1 rounded-lg border border-[#2d3139]">
-                <button
-                  onClick={() => setDxFocus('automation')}
-                  className={`text-[9px] font-sans font-semibold py-1 rounded transition-colors cursor-pointer ${
-                    dxFocus === 'automation' ? 'bg-[#2a2f38] text-emerald-400 font-bold' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t.simAutoSaaS}
-                </button>
-                <button
-                  onClick={() => setDxFocus('rag')}
-                  className={`text-[9px] font-sans font-semibold py-1 rounded transition-colors cursor-pointer ${
-                    dxFocus === 'rag' ? 'bg-[#2a2f38] text-sky-400 font-bold' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t.simSmartRAG}
-                </button>
-                <button
-                  onClick={() => setDxFocus('agents')}
-                  className={`text-[9px] font-sans font-semibold py-1 rounded transition-colors cursor-pointer ${
-                    dxFocus === 'agents' ? 'bg-[#2a2f38] text-amber-500 font-bold' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t.simAgents}
-                </button>
-              </div>
-            </div>
-
-            {/* Simulator Output Indicators */}
-            <div className="space-y-2.5 bg-[#171a1f] p-3 rounded-xl border border-[#242932] font-sans">
-              <div className="flex justify-between items-center pb-2 border-b border-[#242932]/60">
-                <span className="text-[10px] text-gray-450">{t.simEfficiency}</span>
-                <span className="text-sm font-black text-emerald-400 font-mono">+{dxMetrics.productivity}%</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b border-[#242932]/60">
-                <span className="text-[10px] text-gray-450">{t.simSavedTime}</span>
-                <span className="text-[10px] font-bold text-sky-400 font-mono">{dxMetrics.timeSaved}</span>
-              </div>
-              
-              <div className="pt-1">
-                <span className="block text-[8px] font-mono text-gray-450 uppercase tracking-widest mb-1.5">{t.simRoadmapHeader}</span>
-                <ul className="space-y-1.5">
-                  {dxMetrics.roadmap.map((step, sIdx) => (
-                    <li key={sIdx} className="text-[9px] text-gray-300 leading-normal flex items-start gap-1">
-                      <span className="text-amber-500 shrink-0 font-bold">✓</span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Small status overlay */}
-            <div className="mt-3.5 flex items-center justify-between text-[8px] font-mono text-gray-500">
-              <span className="text-gray-400">{dxMetrics.difficulty}</span>
-              <span className="text-[7.5px] text-amber-500 font-bold uppercase tracking-wider">{t.simBadge}</span>
             </div>
           </div>
         </div>
