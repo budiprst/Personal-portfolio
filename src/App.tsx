@@ -230,6 +230,7 @@ export default function App() {
 
   // Simple scroll parallax state
   const [scrollY, setScrollY] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Interactive AI-DX Maturity Simulator state
   const [dxCompanyStage, setDxCompanyStage] = useState<'legacy' | 'growing' | 'enterprise'>('growing');
@@ -343,13 +344,23 @@ export default function App() {
     const handleScroll = () => {
       setScrollY(window.scrollY);
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
 
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
+
+    // Initial checks
+    handleResize();
     refreshPortfolioData();
     fetchAnnouncements();
     fetchCalendar();
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
 
@@ -433,15 +444,15 @@ export default function App() {
         {/* Soft abstract graphic background - highly optimized vector elements */}
         <div 
           className="absolute top-20 right-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-neutral-200/40 to-neutral-100/20 blur-3xl transition-transform duration-75"
-          style={{ transform: `translateY(${scrollY * 0.15}px) rotate(${scrollY * 0.02}deg)` }}
+          style={{ transform: isMobile ? undefined : `translateY(${scrollY * 0.15}px) rotate(${scrollY * 0.02}deg)` }}
         />
         <div 
           className="absolute top-[800px] left-[-15%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-neutral-200/30 to-amber-100/15 blur-2xl transition-transform duration-75"
-          style={{ transform: `translateY(${scrollY * 0.22}px) translateZ(0)` }}
+          style={{ transform: isMobile ? undefined : `translateY(${scrollY * 0.22}px) translateZ(0)` }}
         />
         <div 
           className="absolute top-10 left-[10%] w-full max-w-[1200px] h-[1000px] border-x border-[#f1f1f1] opacity-[0.8] mx-auto hidden md:flex items-start justify-between"
-          style={{ transform: `translateY(${scrollY * -0.05}px)` }}
+          style={{ transform: isMobile ? undefined : `translateY(${scrollY * -0.05}px)` }}
         >
           <div className="w-px h-full bg-[#f1f1f1]" style={{ transform: `translateY(${scrollY * 0.1}px)` }} />
           <div className="w-px h-full bg-[#f1f1f1]" style={{ transform: `translateY(${scrollY * 0.25}px)` }} />
@@ -642,6 +653,50 @@ export default function App() {
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[8px]">▼</span>
             </div>
 
+            {/* Social Buttons (hidden on mobile, visible on desktop/normal layout) */}
+            <div className="hidden md:flex items-center gap-1.5">
+              <a 
+                id="header-link-github"
+                href="https://github.com/budiprst/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 bg-[#f3f3f3] hover:bg-neutral-900 text-gray-600 hover:text-white rounded-full transition-all cursor-pointer"
+                title="GitHub"
+              >
+                <Github size={13} />
+              </a>
+              <a 
+                id="header-link-linkedin"
+                href="https://www.linkedin.com/in/budi-prst/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 bg-[#f3f3f3] hover:bg-neutral-900 text-gray-600 hover:text-white rounded-full transition-all cursor-pointer"
+                title="LinkedIn"
+              >
+                <Linkedin size={13} />
+              </a>
+              <a 
+                id="header-link-instagram"
+                href="https://instagram.com/budi_prst" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 bg-[#f3f3f3] hover:bg-neutral-900 text-gray-600 hover:text-white rounded-full transition-all cursor-pointer"
+                title="Instagram"
+              >
+                <Instagram size={13} />
+              </a>
+              <a 
+                id="header-link-facebook"
+                href="https://www.facebook.com/cygnuslife/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 bg-[#f3f3f3] hover:bg-neutral-900 text-gray-600 hover:text-white rounded-full transition-all cursor-pointer"
+                title="Facebook"
+              >
+                <Facebook size={13} />
+              </a>
+            </div>
+
             <button
               id="header-btn-toggle-owner-portal"
               onClick={() => setIsAdminOpen(true)}
@@ -658,7 +713,7 @@ export default function App() {
       <section className="relative z-10 px-6 pt-16 pb-24 sm:pt-24 sm:pb-36 max-w-7xl mx-auto flex flex-col items-start">
         <div 
           className="max-w-3xl transform transition-transform duration-75 ease-out select-none"
-          style={{ transform: `translateY(${scrollY * -0.12}px)` }}
+          style={{ transform: isMobile ? undefined : `translateY(${scrollY * -0.12}px)` }}
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-lg text-xs font-semibold text-gray-700 border border-neutral-250 mb-6 font-sans">
             <Sparkles size={13} className="text-amber-500" />
